@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/auth";
+import { createdByOrNull, requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { emptyToNull, requiredString } from "@/lib/forms";
 
@@ -22,7 +22,7 @@ export async function createResourceBookingAction(formData: FormData) {
     end_at: new Date(endAt).toISOString(),
     course_session_id: emptyToNull(formData.get("course_session_id")),
     notes: emptyToNull(formData.get("notes")),
-    created_by: profile.id,
+    created_by: createdByOrNull(profile),
   });
 
   revalidatePath(`/resources/${resourceId}`);

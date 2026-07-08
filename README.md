@@ -67,6 +67,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 4. Email/password auth is used — no public sign-up page exists, so the only
    way in is via an admin invite.
 
+### Skipping login temporarily
+
+If you don't have a password set up yet, set `DISABLE_AUTH=true` in
+`.env.local` (or in Vercel's env vars) to bypass the login requirement
+entirely — every page becomes reachable with no sign-in. A banner shows in
+the app while this is on. **This makes the app open to anyone with the
+URL**, so only use it for local testing or a not-yet-shared deployment, and
+remove the env var (or invite yourself properly, see above) before real use.
+
 ## Deploying to Vercel
 
 1. Push this repository to GitHub (already done if you're reading this from

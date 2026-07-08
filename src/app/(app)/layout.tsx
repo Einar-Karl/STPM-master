@@ -51,7 +51,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto p-8">
-        <div className="mx-auto max-w-5xl space-y-6">{children}</div>
+        <div className="mx-auto max-w-5xl space-y-6">
+          {process.env.DISABLE_AUTH === "true" && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+              Auth is disabled (<code>DISABLE_AUTH=true</code>). Anyone with this URL can use the app with
+              no sign-in. Remove that env var before this is used for real.
+            </div>
+          )}
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/auth";
+import { createdByOrNull, requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { emptyToNull, requiredString } from "@/lib/forms";
 
@@ -17,7 +17,7 @@ export async function createHotelAction(formData: FormData) {
     address: emptyToNull(formData.get("address")),
     contact_info: emptyToNull(formData.get("contact_info")),
     notes: emptyToNull(formData.get("notes")),
-    created_by: profile.id,
+    created_by: createdByOrNull(profile),
   });
 
   revalidatePath("/hotels");

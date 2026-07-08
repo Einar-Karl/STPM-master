@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/auth";
+import { createdByOrNull, requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { emptyToNull, requiredString } from "@/lib/forms";
 import type { Enums } from "@/lib/supabase/database.types";
@@ -27,7 +27,7 @@ export async function createHotelBookingAction(formData: FormData) {
     status: requiredString(formData.get("status")) as Enums<"booking_status">,
     course_session_id: emptyToNull(formData.get("course_session_id")),
     notes: emptyToNull(formData.get("notes")),
-    created_by: profile.id,
+    created_by: createdByOrNull(profile),
   });
 
   revalidatePath("/hotel-bookings");

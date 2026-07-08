@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/auth";
+import { createdByOrNull, requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { emptyToNull, optionalNumber, requiredString } from "@/lib/forms";
 
@@ -17,7 +17,7 @@ export async function createCourseAction(formData: FormData) {
     description: emptyToNull(formData.get("description")),
     duration_days: optionalNumber(formData.get("duration_days")),
     price: optionalNumber(formData.get("price")),
-    created_by: profile.id,
+    created_by: createdByOrNull(profile),
   });
 
   revalidatePath("/courses");
