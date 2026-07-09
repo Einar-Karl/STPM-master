@@ -4,9 +4,11 @@ import { logout } from "@/app/login/actions";
 
 const navItems = [
   { href: "/", label: "Dashboard" },
-  { href: "/clients", label: "Clients" },
+  { href: "/weeks", label: "Course Weeks" },
+  { href: "/teachers", label: "Teachers" },
   { href: "/courses", label: "Courses" },
   { href: "/course-bookings", label: "Course Bookings" },
+  { href: "/clients", label: "Clients" },
   { href: "/hotels", label: "Hotels" },
   { href: "/hotel-bookings", label: "Hotel Bookings" },
   { href: "/resources", label: "Resources" },

@@ -46,68 +46,97 @@ export type Database = {
           phone?: string | null
           type?: Database["public"]["Enums"]["client_type"]
         }
-        Relationships: [
-          {
-            foreignKeyName: "clients_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       course_bookings: {
         Row: {
+          accommodation: string | null
+          arrival: string | null
           client_id: string | null
+          comments: string | null
+          coordinator: string | null
           created_at: string
           created_by: string | null
+          departure: string | null
+          first_name: string | null
+          group_label: string | null
           id: string
+          invoice_no: string | null
+          nationality: string | null
           notes: string | null
           participant_email: string | null
           participant_name: string
+          participant_role: string | null
+          payment_notes: string | null
+          payment_status: string | null
+          phone: string | null
+          price: number | null
+          school: string | null
           seats: number
           session_id: string
+          special_needs: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          tour_booked: boolean | null
         }
         Insert: {
+          accommodation?: string | null
+          arrival?: string | null
           client_id?: string | null
+          comments?: string | null
+          coordinator?: string | null
           created_at?: string
           created_by?: string | null
+          departure?: string | null
+          first_name?: string | null
+          group_label?: string | null
           id?: string
+          invoice_no?: string | null
+          nationality?: string | null
           notes?: string | null
           participant_email?: string | null
           participant_name: string
+          participant_role?: string | null
+          payment_notes?: string | null
+          payment_status?: string | null
+          phone?: string | null
+          price?: number | null
+          school?: string | null
           seats?: number
           session_id: string
+          special_needs?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          tour_booked?: boolean | null
         }
         Update: {
+          accommodation?: string | null
+          arrival?: string | null
           client_id?: string | null
+          comments?: string | null
+          coordinator?: string | null
           created_at?: string
           created_by?: string | null
+          departure?: string | null
+          first_name?: string | null
+          group_label?: string | null
           id?: string
+          invoice_no?: string | null
+          nationality?: string | null
           notes?: string | null
           participant_email?: string | null
           participant_name?: string
+          participant_role?: string | null
+          payment_notes?: string | null
+          payment_status?: string | null
+          phone?: string | null
+          price?: number | null
+          school?: string | null
           seats?: number
           session_id?: string
+          special_needs?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          tour_booked?: boolean | null
         }
         Relationships: [
-          {
-            foreignKeyName: "course_bookings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "course_bookings_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "course_bookings_session_id_fkey"
             columns: ["session_id"]
@@ -120,39 +149,51 @@ export type Database = {
       course_sessions: {
         Row: {
           capacity: number | null
+          code: string | null
           course_id: string
           created_at: string
           created_by: string | null
           end_date: string
           id: string
+          lead_teacher_id: string | null
           location: string | null
           notes: string | null
           start_date: string
           status: Database["public"]["Enums"]["booking_status"]
+          support_teacher_id: string | null
+          week_id: string | null
         }
         Insert: {
           capacity?: number | null
+          code?: string | null
           course_id: string
           created_at?: string
           created_by?: string | null
           end_date: string
           id?: string
+          lead_teacher_id?: string | null
           location?: string | null
           notes?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["booking_status"]
+          support_teacher_id?: string | null
+          week_id?: string | null
         }
         Update: {
           capacity?: number | null
+          code?: string | null
           course_id?: string
           created_at?: string
           created_by?: string | null
           end_date?: string
           id?: string
+          lead_teacher_id?: string | null
           location?: string | null
           notes?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          support_teacher_id?: string | null
+          week_id?: string | null
         }
         Relationships: [
           {
@@ -163,13 +204,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "course_sessions_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "course_sessions_lead_teacher_id_fkey"
+            columns: ["lead_teacher_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_sessions_support_teacher_id_fkey"
+            columns: ["support_teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_sessions_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "course_weeks"
             referencedColumns: ["id"]
           },
         ]
+      }
+      course_weeks: {
+        Row: {
+          channel: Database["public"]["Enums"]["channel"]
+          created_at: string
+          end_date: string
+          id: string
+          label: string
+          location: string
+          notes: string | null
+          start_date: string
+        }
+        Insert: {
+          channel?: Database["public"]["Enums"]["channel"]
+          created_at?: string
+          end_date: string
+          id?: string
+          label: string
+          location: string
+          notes?: string | null
+          start_date: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["channel"]
+          created_at?: string
+          end_date?: string
+          id?: string
+          label?: string
+          location?: string
+          notes?: string | null
+          start_date?: string
+        }
+        Relationships: []
       }
       courses: {
         Row: {
@@ -199,15 +287,7 @@ export type Database = {
           name?: string
           price?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "courses_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       hotel_bookings: {
         Row: {
@@ -256,27 +336,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
         }
         Relationships: [
-          {
-            foreignKeyName: "hotel_bookings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hotel_bookings_course_session_id_fkey"
-            columns: ["course_session_id"]
-            isOneToOne: false
-            referencedRelation: "course_sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hotel_bookings_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "hotel_bookings_hotel_id_fkey"
             columns: ["hotel_id"]
@@ -356,15 +415,7 @@ export type Database = {
           name?: string
           notes?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "hotels_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -426,20 +477,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "resource_bookings_course_session_id_fkey"
-            columns: ["course_session_id"]
-            isOneToOne: false
-            referencedRelation: "course_sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_bookings_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "resource_bookings_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
@@ -472,6 +509,36 @@ export type Database = {
         }
         Relationships: []
       }
+      teachers: {
+        Row: {
+          active: boolean
+          code: string | null
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          specializations: string | null
+        }
+        Insert: {
+          active?: boolean
+          code?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          specializations?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          specializations?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -482,6 +549,7 @@ export type Database = {
     }
     Enums: {
       booking_status: "pending" | "confirmed" | "cancelled" | "completed"
+      channel: "innie" | "outie"
       client_type: "individual" | "company" | "group"
       resource_type: "room" | "equipment" | "vehicle" | "other"
       staff_role: "staff" | "admin"
@@ -592,10 +660,28 @@ export type Enums<
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
 export const Constants = {
   public: {
     Enums: {
       booking_status: ["pending", "confirmed", "cancelled", "completed"],
+      channel: ["innie", "outie"],
       client_type: ["individual", "company", "group"],
       resource_type: ["room", "equipment", "vehicle", "other"],
       staff_role: ["staff", "admin"],
