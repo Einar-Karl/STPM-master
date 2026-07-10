@@ -45,7 +45,7 @@ where not exists (select 1 from public.courses c where c.name = v.name);
 
 -- Course weeks -------------------------------------------------------
 insert into public.course_weeks (start_date,end_date,location,channel,label)
-select * from (values
+select sd, ed, loc, ch::public.channel, lbl from (values
   ('2026-02-15'::date,'2026-02-20'::date,'Iceland','outie','15.02.2026 Iceland'),
   ('2026-02-22'::date,'2026-02-27'::date,'Iceland','outie','22.02.2026 Iceland'),
   ('2026-03-29'::date,'2026-04-03'::date,'Iceland','outie','29.03.2026 Iceland'),
