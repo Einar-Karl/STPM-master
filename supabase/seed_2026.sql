@@ -229,7 +229,7 @@ where not exists (select 1 from public.course_sessions s where s.code = v.code);
 truncate table public.course_bookings;
 
 insert into public.course_bookings (session_id,status,participant_name,first_name,nationality,participant_email,phone,coordinator,school,participant_role,arrival,departure,accommodation,price,payment_status,invoice_no,payment_notes,tour_booked,special_needs,comments,group_label,seats)
-select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour,v.needs,v.comments,v.grp,1
+select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour::boolean,v.needs,v.comments,v.grp,1
 from (values
 ('2026-02-15'::date,'Iceland','IMPROVE YOUR ENGLISH','confirmed','Anais Sanchez','Anais','France','anaisanchez01091984@gmail.com','0635120870','Ecole Paul DiLorto','Primary school/ Paul Di Lorto label erasmus','Teacher','14/02/2026','21/02/2026','Near to the center',595.0,'PAID','11364','03.12.25 CPR MME ANAIS SANCHEZ',true,'NO',null,'PEACH — Group AA'),
 ('2026-02-15','Iceland','IMPROVE YOUR ENGLISH','confirmed','Gwendoline Doom','Gwendoline','France','g.doom@epid-vauban.fr','+33633012306','Florence Deheunynck','Groupe EPID VAUBAN, 20 rue de Lille, 59140 Dunkerque
@@ -447,7 +447,7 @@ join public.course_sessions s on s.week_id=w.id
 join public.courses c on c.id=s.course_id and c.name=v.course;
 
 insert into public.course_bookings (session_id,status,participant_name,first_name,nationality,participant_email,phone,coordinator,school,participant_role,arrival,departure,accommodation,price,payment_status,invoice_no,payment_notes,tour_booked,special_needs,comments,group_label,seats)
-select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour,v.needs,v.comments,v.grp,1
+select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour::boolean,v.needs,v.comments,v.grp,1
 from (values
 ('2026-03-29'::date,'Iceland','ECO-EXPLORERS','confirmed','Victoria Eugenia Cánovas Miralles','Victoria Eugenia','Spain','ve.canovasmiralles@edu.gva.es','+34667978554','Ernesto Martín Martínez','Secondary school named IES Santa Pola. Calle Mar, 95, 03130. Santa Pola (Alicante) SPAIN','Teacher','I don''t know at the moment','I don''t know at the moment','I don''t know at the moment',595.0,'PAID','11766','18.03.2026 CPR AND TPR INSTITUT EDUCACIO SECUNDARIA SANTA POLA',true,'NO','12.10.26 she has sent details for refund a Kristín informs it is too late to reject it - Sending to Kristin','LIGHT YELLOW — Group A'),
 ('2026-03-29','Iceland','ICELANDIC EDUCATION SYSTEM','confirmed','Ana Juvan','Ana','Slovenia','ana.juvan@os-antonajanse.si','+38640503800','Peter Kolman','Osnovna šola Antona Janše Radovljica, Kranjska cesta 27a, 4240 Radovljica, Primary school with lower educational standards for children with special needs.','Physical education teacher','29.3.2026','4.4.2026','I don''t know yet.',595.0,'PAID','11271','04.11.25 CPR OS A.JANSE RADOVLJICA',true,'NO',null,'NONE — No fill'),
@@ -660,7 +660,7 @@ join public.course_sessions s on s.week_id=w.id
 join public.courses c on c.id=s.course_id and c.name=v.course;
 
 insert into public.course_bookings (session_id,status,participant_name,first_name,nationality,participant_email,phone,coordinator,school,participant_role,arrival,departure,accommodation,price,payment_status,invoice_no,payment_notes,tour_booked,special_needs,comments,group_label,seats)
-select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour,v.needs,v.comments,v.grp,1
+select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour::boolean,v.needs,v.comments,v.grp,1
 from (values
 ('2026-04-05'::date,'Iceland','SMART TEACHERS PLAY MORE','confirmed','Janell  Dulkiene','Janell','Canada','janell.dulkiene@misko-mokykla.lt','+37068424741','Dovile Urbanaviciene','Miško Mokykla. Šlaito g. 1b, Klaipėda.  Primary school & kindergarten','English Teacher','Not sure yet','Not sure yet','Not sure yet',490.0,'PAID','11898','23.03.2026 CPR VSI ,,LAIMINGU VAIKU PILIS',true,'NO',null,'NONE — No fill'),
 ('2026-04-05','Iceland','SMART TEACHERS PLAY MORE','confirmed','Laurène Vivenzio','Laurène','France','laurene.vivenzio@ac-grenoble.fr','+33648264176','Thomas Collignon','Ecole de Châtillon-en-Diois, 4 place des Ecoles, 26410 Châtillon-en-Diois, France - Primary','school principal and teacher','5 april','12 to 14 april according to the price of plane tickets','in progress',595.0,'PENDING','11885',null,true,'NO','02.04 sent email re-payment','CREAM PINK — Group S'),
@@ -861,7 +861,7 @@ join public.course_sessions s on s.week_id=w.id
 join public.courses c on c.id=s.course_id and c.name=v.course;
 
 insert into public.course_bookings (session_id,status,participant_name,first_name,nationality,participant_email,phone,coordinator,school,participant_role,arrival,departure,accommodation,price,payment_status,invoice_no,payment_notes,tour_booked,special_needs,comments,group_label,seats)
-select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour,v.needs,v.comments,v.grp,1
+select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour::boolean,v.needs,v.comments,v.grp,1
 from (values
 ('2026-06-07'::date,'Finland','IMPROVE YOUR ENGLISH','confirmed','Jessica','French','jessica.renverseau@ac-aix-marseille.fr','+33685549868','Yes','lisa.querat@ac-aix-marseille.fr','Teacher','2026-06-07 00:00:00','2026-06-14 00:00:00','I don''t know. If you have any place to advise us, we agree.','Collège Jean Giono, 177 Avenue Charles Dardun, 84100 Orange, France, SIRET 19840116800010',null::numeric,'PENDING',null,null,null,null,null,'Not found'),
 ('2026-06-07','Finland','IMPROVE YOUR ENGLISH','confirmed','Magdalena','Italy','magdalena.lerchegger@provinz.bz.it','+393397214375','Yes','Mathias.Stuflesser@provinz.bz.it','Educational collaborator',null,null,null,'Magdalena Lerchegger - Adress: Pedraces 11, 39036 Badia (BZ), Italy - Fiscal number: LRCMDL79M70B160M',null,'PENDING',null,null,null,null,null,'Not found'),
@@ -1062,7 +1062,7 @@ join public.course_sessions s on s.week_id=w.id
 join public.courses c on c.id=s.course_id and c.name=v.course;
 
 insert into public.course_bookings (session_id,status,participant_name,first_name,nationality,participant_email,phone,coordinator,school,participant_role,arrival,departure,accommodation,price,payment_status,invoice_no,payment_notes,tour_booked,special_needs,comments,group_label,seats)
-select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour,v.needs,v.comments,v.grp,1
+select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour::boolean,v.needs,v.comments,v.grp,1
 from (values
 ('2026-07-12'::date,'Iceland','SMART TEACHERS PLAY MORE OUTDOORS','confirmed','Petra Svobodová','Petra','Czechia','p.svobodova@zszeliv.cz','+420732417560','Petra Svobodová','Základní škola Želiv, okres Pelhřimov - primary and secondary school','English teacher, Erasmus coordinator','I don´t know yet','I don´t know yet','I don´t know yet',595.0,'PAID','11712','24.02.2026 CPR MILAN SVOBODA',false,'NO',null,'ICE BLUE — Group J'),
 ('2026-07-12','Iceland','SMART TEACHERS PLAY MORE OUTDOORS','confirmed','Valérie Sene','Valérie','France','valerie.levensene@orange.fr','0607154673','Paule','School Sainte Anne - 1 rue des Fédérés - 29260 PLOUDANIEL Primary School','I''m 2nd grade teacher','11 juillet 2026','25 juillet 2026','We don''t known yet.',595.0,'PENDING','11996',null,false,'NO',null,'LIGHT BLUE — Group H'),
@@ -1301,7 +1301,7 @@ join public.course_sessions s on s.week_id=w.id
 join public.courses c on c.id=s.course_id and c.name=v.course;
 
 insert into public.course_bookings (session_id,status,participant_name,first_name,nationality,participant_email,phone,coordinator,school,participant_role,arrival,departure,accommodation,price,payment_status,invoice_no,payment_notes,tour_booked,special_needs,comments,group_label,seats)
-select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour,v.needs,v.comments,v.grp,1
+select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour::boolean,v.needs,v.comments,v.grp,1
 from (values
 ('2026-08-09'::date,'Finland','SMART TEACHERS PLAY MORE','confirmed','Ilaria Nardone','Ilaria','Italy','ilarianardone@iccassola.edu.it','00393338030176','Lucia Cruschelli','I.C. "C. Cassola", via Sforza 6, 57023 Cecina (LI) ITALIA. Cod. Mecc.LIIC820003 Cod. Fisc. 92144970495 email: liic820003@istruzione.it  - Primary school','Primary school teacher','2026-08-08 00:00:00','2026-08-16 00:00:00',null,595.0,'PENDING','12018 ( inverted 12011& 11921)',null,null,'NO','need a cumulative invoice for the 4 mobilities','Not found'),
 ('2026-08-09','Finland','SMART TEACHERS PLAY MORE','confirmed','Kurmet Kaldaru','Kurmet','Estonia','kurmet.kaldaru@hotmail.com','55585028',null,'Antsla Gümnaasium, primary and secondary','PE teacher',null,null,null,595.0,'PENDING',null,null,null,'NO',null,'Not found'),
@@ -1495,7 +1495,7 @@ join public.course_sessions s on s.week_id=w.id
 join public.courses c on c.id=s.course_id and c.name=v.course;
 
 insert into public.course_bookings (session_id,status,participant_name,first_name,nationality,participant_email,phone,coordinator,school,participant_role,arrival,departure,accommodation,price,payment_status,invoice_no,payment_notes,tour_booked,special_needs,comments,group_label,seats)
-select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour,v.needs,v.comments,v.grp,1
+select s.id,v.status::public.booking_status,v.pname,v.fname,v.nat,v.email,v.phone,v.coord,v.school,v.prole,v.arrival,v.departure,v.accommodation,v.price,v.pay,v.inv,v.paynotes,v.tour::boolean,v.needs,v.comments,v.grp,1
 from (values
 ('2026-07-19'::date,'Iceland','AI IN EDUCATION','pending','Participant 1',null,null,null,null,null,null,null,null,null,null,null::numeric,null,null,null,null,null,'Do not write directly to Emanuela - Foward all correspondence to Sarah',null),
 ('2026-07-19','Iceland','AI IN EDUCATION','pending','Participant 10',null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,'Do not write directly to Emanuela - Foward all correspondence to Sarah',null),
