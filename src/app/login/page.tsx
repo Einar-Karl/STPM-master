@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { login } from "./actions";
 import { Button, ErrorBanner, Field, Input } from "@/components/ui";
 
@@ -28,6 +29,12 @@ export default async function LoginPage({
         <Button type="submit" className="w-full">
           Sign in
         </Button>
+        <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+          Need an account?{" "}
+          <Link href="/signup" className="font-medium text-neutral-900 hover:underline dark:text-neutral-100">
+            Request access
+          </Link>
+        </p>
       </form>
     </div>
   );

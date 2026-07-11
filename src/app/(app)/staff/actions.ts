@@ -17,3 +17,14 @@ export async function updateStaffRoleAction(formData: FormData) {
   await supabase.from("profiles").update({ role }).eq("id", id);
   revalidatePath("/staff");
 }
+
+export async function approveStaffAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const id = requiredString(formData.get("id"));
+  if (!id) return;
+
+  await supabase.from("profiles").update({ role: "staff" }).eq("id", id);
+  revalidatePath("/staff");
+}

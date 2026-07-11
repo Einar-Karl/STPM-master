@@ -552,7 +552,7 @@ export type Database = {
       channel: "innie" | "outie"
       client_type: "individual" | "company" | "group"
       resource_type: "room" | "equipment" | "vehicle" | "other"
-      staff_role: "staff" | "admin"
+      staff_role: "staff" | "admin" | "pending"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -684,7 +684,7 @@ export const Constants = {
       channel: ["innie", "outie"],
       client_type: ["individual", "company", "group"],
       resource_type: ["room", "equipment", "vehicle", "other"],
-      staff_role: ["staff", "admin"],
+      staff_role: ["staff", "admin", "pending"],
     },
   },
 } as const

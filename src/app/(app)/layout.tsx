@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 
@@ -18,6 +19,7 @@ const adminNavItems = [{ href: "/staff", label: "Staff" }];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await requireStaff();
+  if (profile.role === "pending") redirect("/pending-approval");
   const items = profile.role === "admin" ? [...navItems, ...adminNavItems] : navItems;
 
   return (

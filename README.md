@@ -54,18 +54,24 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 1. The schema lives in `supabase/migrations/`. Apply it to a Supabase project
    (via the SQL editor, the Supabase CLI, or the Supabase MCP tools) in order.
-2. **Adding staff**: Supabase dashboard → Authentication → Users → **Invite
-   user**. A `public.profiles` row is created automatically (via a DB trigger)
-   with the `staff` role.
-3. **First admin**: after inviting yourself, promote your own account once via
-   the SQL editor:
+2. **Adding staff**: staff can request access themselves at `/signup`, or you
+   can invite from the Supabase dashboard → Authentication → Users → **Invite
+   user**. Either way, a `public.profiles` row is created automatically (via a
+   DB trigger) with the `pending` role — RLS blocks all business data for
+   pending accounts, so a new signup can't see anything until approved.
+3. **Approving staff**: admins approve pending signups from the in-app
+   **Staff** page (pending requests show at the top with an Approve button).
+   Same page lets admins promote/demote between `staff` and `admin`, or push
+   someone back to `pending` to revoke access.
+4. **First admin**: after your own account signs up (or is invited), promote
+   it once via the SQL editor — this bootstraps the very first admin, since no
+   one else can approve them yet:
    ```sql
    update public.profiles set role = 'admin' where email = 'you@example.com';
    ```
-   After that, admins can promote/demote other staff from the in-app **Staff**
-   page.
-4. Email/password auth is used — no public sign-up page exists, so the only
-   way in is via an admin invite.
+5. Recommended: in Supabase dashboard → Authentication → Policies, enable
+   **leaked password protection** now that there's a public signup form
+   accepting passwords.
 
 ### Your login
 
