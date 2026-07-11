@@ -3,16 +3,32 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/auth";
 import { Card, EmptyState, PageHeader, Table, Td, Th } from "@/components/ui";
 import { channelLabel, formatDateRange } from "@/lib/planner";
+import { YearTimeline, YearTimelineLegend, type TimelineBar } from "@/components/year-timeline";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string }>;
+}) {
   await requireStaff();
+  const { year: yearParam } = await searchParams;
+  const year = Number(yearParam) || 2026;
+
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year + 1}-01-01`;
 
-  const [{ data: weeks }, { data: sessions }, { data: bookings }] = await Promise.all([
+  const [{ data: weeks }, { data: yearWeeks }, { data: sessions }, { data: bookings }] = await Promise.all([
     supabase
       .from("course_weeks")
       .select("id, start_date, end_date, location, channel")
+      .order("start_date", { ascending: true }),
+    supabase
+      .from("course_weeks")
+      .select("id, start_date, end_date, location, channel")
+      .gte("start_date", yearStart)
+      .lt("start_date", yearEnd)
       .order("start_date", { ascending: true }),
     supabase.from("course_sessions").select("id, week_id, lead_teacher_id"),
     supabase.from("course_bookings").select("session_id, status, payment_status"),
@@ -43,6 +59,19 @@ export default async function DashboardPage() {
     staffedByWeek.set(s.week_id, agg);
   }
 
+  const timelineBars: TimelineBar[] = (yearWeeks ?? []).map((w) => {
+    const agg = staffedByWeek.get(w.id) ?? { staffed: 0, total: 0 };
+    return {
+      id: w.id,
+      start_date: w.start_date,
+      end_date: w.end_date,
+      location: w.location,
+      channel: w.channel,
+      courseCount: agg.total,
+      staffedCount: agg.staffed,
+    };
+  });
+
   const outieWeeks = (weeks ?? []).filter((w) => w.channel === "outie").length;
   const innieWeeks = (weeks ?? []).filter((w) => w.channel === "innie").length;
   const upcoming = (weeks ?? []).filter((w) => w.end_date >= today).slice(0, 8);
@@ -58,8 +87,39 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         title="Dashboard"
-        description="STPM 2026 master planning overview."
+        description="STPM master planning overview."
       />
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          {year} at a glance
+        </h2>
+        <div className="flex items-center gap-2 text-sm">
+          <Link
+            href={`/?year=${year - 1}`}
+            className="rounded-md border border-neutral-300 px-2 py-1 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          >
+            &larr; {year - 1}
+          </Link>
+          <Link
+            href={`/?year=${year + 1}`}
+            className="rounded-md border border-neutral-300 px-2 py-1 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          >
+            {year + 1} &rarr;
+          </Link>
+        </div>
+      </div>
+
+      {timelineBars.length ? (
+        <>
+          <YearTimeline year={year} bars={timelineBars} />
+          <YearTimelineLegend />
+        </>
+      ) : (
+        <Card>
+          <EmptyState>No course weeks scheduled for {year} yet.</EmptyState>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
