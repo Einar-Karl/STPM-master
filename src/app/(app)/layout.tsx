@@ -8,6 +8,7 @@ import { ChannelFilterToggle } from "@/components/channel-filter-toggle";
 const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/weeks", label: "Course Weeks" },
+  { href: "/sales", label: "Sales" },
   { href: "/teachers", label: "Teachers" },
   { href: "/courses", label: "Courses" },
   { href: "/course-bookings", label: "Course Bookings" },

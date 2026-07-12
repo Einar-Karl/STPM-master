@@ -6,16 +6,15 @@ import {
   Button,
   Card,
   EmptyState,
-  Field,
   Input,
   PageHeader,
   Select,
   Table,
   Td,
-  Textarea,
   Th,
 } from "@/components/ui";
 import { channelLabel, formatDateRange } from "@/lib/planner";
+import { WeekItinerary } from "@/components/week-itinerary";
 import { assignTeachersAction, updateDayPlanAction, updateWeekLocationAction } from "./actions";
 
 export default async function WeekDetailPage({
@@ -37,7 +36,9 @@ export default async function WeekDetailPage({
   const [{ data: sessions }, { data: teachers }, { data: bookings }, { data: days }] = await Promise.all([
     supabase
       .from("course_sessions")
-      .select("id, lead_teacher_id, support_teacher_id, capacity, courses(name)")
+      .select(
+        "id, lead_teacher_id, support_teacher_id, capacity, courses(name), lead:lead_teacher_id(name), support:support_teacher_id(name)"
+      )
       .eq("week_id", id),
     supabase.from("teachers").select("id, name, code, active").order("sort_order", { ascending: true }),
     supabase.from("course_bookings").select("session_id, status"),
@@ -57,9 +58,18 @@ export default async function WeekDetailPage({
     .map((s) => ({
       ...s,
       courseName: (s.courses as unknown as { name: string } | null)?.name ?? "—",
+      leadName: (s.lead as unknown as { name: string } | null)?.name ?? null,
+      supportName: (s.support as unknown as { name: string } | null)?.name ?? null,
       count: counts.get(s.id) ?? 0,
     }))
     .sort((a, b) => a.courseName.localeCompare(b.courseName));
+
+  const itineraryCourses = rows.map((s) => ({
+    name: s.courseName,
+    lead: s.leadName,
+    support: s.supportName,
+    count: s.count,
+  }));
 
   return (
     <>
@@ -186,36 +196,18 @@ export default async function WeekDetailPage({
           </Card>
         )
       ) : days?.length ? (
-        <div className="space-y-3">
-          {days.map((day) => (
-            <Card key={day.id}>
-              <form action={updateDayPlanAction} className="space-y-3">
-                <input type="hidden" name="day_id" value={day.id} />
-                <input type="hidden" name="week_id" value={week.id} />
-                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                  {new Date(`${day.day_date}T00:00:00Z`).toLocaleDateString("en-GB", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                  })}
-                </p>
-                <Field label="Title" name="title">
-                  <Input
-                    name="title"
-                    defaultValue={day.title ?? ""}
-                    placeholder="e.g. Arrival day, Golden Circle tour, Course day 3"
-                  />
-                </Field>
-                <Field label="Plan / notes" name="notes">
-                  <Textarea name="notes" defaultValue={day.notes ?? ""} rows={2} />
-                </Field>
-                <Button type="submit" variant="ghost" className="px-2 py-1 text-xs">
-                  Save
-                </Button>
-              </form>
-            </Card>
-          ))}
-        </div>
+        <WeekItinerary
+          week={{
+            id: week.id,
+            start_date: week.start_date,
+            end_date: week.end_date,
+            location: week.location,
+            channel: week.channel,
+          }}
+          days={days.map((d) => ({ id: d.id, day_date: d.day_date, title: d.title, notes: d.notes }))}
+          courses={itineraryCourses}
+          updateDayPlanAction={updateDayPlanAction}
+        />
       ) : (
         <Card>
           <EmptyState>No day-by-day plan yet.</EmptyState>
