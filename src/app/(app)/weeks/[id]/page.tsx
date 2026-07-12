@@ -6,31 +6,42 @@ import {
   Button,
   Card,
   EmptyState,
+  Field,
   Input,
   PageHeader,
   Select,
   Table,
   Td,
+  Textarea,
   Th,
 } from "@/components/ui";
 import { channelLabel, formatDateRange } from "@/lib/planner";
-import { assignTeachersAction, updateWeekLocationAction } from "./actions";
+import { assignTeachersAction, updateDayPlanAction, updateWeekLocationAction } from "./actions";
 
-export default async function WeekDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function WeekDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
+}) {
   await requireStaff();
   const { id } = await params;
+  const { view } = await searchParams;
+  const activeView = view === "days" ? "days" : "week";
   const supabase = await createClient();
 
   const { data: week } = await supabase.from("course_weeks").select("*").eq("id", id).single();
   if (!week) notFound();
 
-  const [{ data: sessions }, { data: teachers }, { data: bookings }] = await Promise.all([
+  const [{ data: sessions }, { data: teachers }, { data: bookings }, { data: days }] = await Promise.all([
     supabase
       .from("course_sessions")
       .select("id, lead_teacher_id, support_teacher_id, capacity, courses(name)")
       .eq("week_id", id),
     supabase.from("teachers").select("id, name, code, active").order("sort_order", { ascending: true }),
     supabase.from("course_bookings").select("session_id, status"),
+    supabase.from("course_week_days").select("*").eq("week_id", id).order("day_date", { ascending: true }),
   ]);
 
   const activeTeachers = (teachers ?? []).filter((t) => t.active);
@@ -76,49 +87,82 @@ export default async function WeekDetailPage({ params }: { params: Promise<{ id:
         </form>
       </Card>
 
-      <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-        Courses &amp; staffing
-      </h2>
+      <div className="flex gap-2">
+        <Link
+          href={`/weeks/${week.id}?view=week`}
+          className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+            activeView === "week"
+              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+              : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          }`}
+        >
+          Week plan
+        </Link>
+        <Link
+          href={`/weeks/${week.id}?view=days`}
+          className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+            activeView === "days"
+              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+              : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          }`}
+        >
+          Day by day
+        </Link>
+      </div>
 
-      {rows.length ? (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Course</Th>
-              <Th>Participants</Th>
-              <Th>Lead teacher</Th>
-              <Th>Support teacher</Th>
-              <Th>
-                <span className="sr-only">Actions</span>
-              </Th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((s) => (
-              <tr key={s.id}>
-                <Td className="font-medium">
-                  <Link href={`/sessions/${s.id}`} className="hover:underline">
-                    {s.courseName}
-                  </Link>
-                </Td>
-                <Td>
-                  {s.count}
-                  {s.capacity ? <span className="text-neutral-400"> / {s.capacity}</span> : null}
-                </Td>
-                <Td>
-                  <form
-                    action={assignTeachersAction}
-                    id={`f-${s.id}`}
-                    className="contents"
-                  >
-                    <input type="hidden" name="session_id" value={s.id} />
-                    <input type="hidden" name="week_id" value={week.id} />
+      {activeView === "week" ? (
+        rows.length ? (
+          <Table>
+            <thead>
+              <tr>
+                <Th>Course</Th>
+                <Th>Participants</Th>
+                <Th>Lead teacher</Th>
+                <Th>Support teacher</Th>
+                <Th>
+                  <span className="sr-only">Actions</span>
+                </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((s) => (
+                <tr key={s.id}>
+                  <Td className="font-medium">
+                    <Link href={`/sessions/${s.id}`} className="hover:underline">
+                      {s.courseName}
+                    </Link>
+                  </Td>
+                  <Td>
+                    {s.count}
+                    {s.capacity ? <span className="text-neutral-400"> / {s.capacity}</span> : null}
+                  </Td>
+                  <Td>
+                    <form action={assignTeachersAction} id={`f-${s.id}`} className="contents">
+                      <input type="hidden" name="session_id" value={s.id} />
+                      <input type="hidden" name="week_id" value={week.id} />
+                      <Select
+                        name="lead_teacher_id"
+                        defaultValue={s.lead_teacher_id ?? ""}
+                        className="py-1 text-xs"
+                      >
+                        <option value="">— unassigned —</option>
+                        {activeTeachers.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                            {t.code ? ` (${t.code})` : ""}
+                          </option>
+                        ))}
+                      </Select>
+                    </form>
+                  </Td>
+                  <Td>
                     <Select
-                      name="lead_teacher_id"
-                      defaultValue={s.lead_teacher_id ?? ""}
+                      form={`f-${s.id}`}
+                      name="support_teacher_id"
+                      defaultValue={s.support_teacher_id ?? ""}
                       className="py-1 text-xs"
                     >
-                      <option value="">— unassigned —</option>
+                      <option value="">— none —</option>
                       {activeTeachers.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.name}
@@ -126,36 +170,55 @@ export default async function WeekDetailPage({ params }: { params: Promise<{ id:
                         </option>
                       ))}
                     </Select>
-                  </form>
-                </Td>
-                <Td>
-                  <Select
-                    form={`f-${s.id}`}
-                    name="support_teacher_id"
-                    defaultValue={s.support_teacher_id ?? ""}
-                    className="py-1 text-xs"
-                  >
-                    <option value="">— none —</option>
-                    {activeTeachers.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                        {t.code ? ` (${t.code})` : ""}
-                      </option>
-                    ))}
-                  </Select>
-                </Td>
-                <Td>
-                  <Button form={`f-${s.id}`} type="submit" variant="ghost" className="px-2 py-1 text-xs">
-                    Save
-                  </Button>
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+                  </Td>
+                  <Td>
+                    <Button form={`f-${s.id}`} type="submit" variant="ghost" className="px-2 py-1 text-xs">
+                      Save
+                    </Button>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        ) : (
+          <Card>
+            <EmptyState>No course sessions scheduled for this week.</EmptyState>
+          </Card>
+        )
+      ) : days?.length ? (
+        <div className="space-y-3">
+          {days.map((day) => (
+            <Card key={day.id}>
+              <form action={updateDayPlanAction} className="space-y-3">
+                <input type="hidden" name="day_id" value={day.id} />
+                <input type="hidden" name="week_id" value={week.id} />
+                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  {new Date(`${day.day_date}T00:00:00Z`).toLocaleDateString("en-GB", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}
+                </p>
+                <Field label="Title" name="title">
+                  <Input
+                    name="title"
+                    defaultValue={day.title ?? ""}
+                    placeholder="e.g. Arrival day, Golden Circle tour, Course day 3"
+                  />
+                </Field>
+                <Field label="Plan / notes" name="notes">
+                  <Textarea name="notes" defaultValue={day.notes ?? ""} rows={2} />
+                </Field>
+                <Button type="submit" variant="ghost" className="px-2 py-1 text-xs">
+                  Save
+                </Button>
+              </form>
+            </Card>
+          ))}
+        </div>
       ) : (
         <Card>
-          <EmptyState>No course sessions scheduled for this week.</EmptyState>
+          <EmptyState>No day-by-day plan yet.</EmptyState>
         </Card>
       )}
     </>

@@ -226,6 +226,41 @@ export type Database = {
           },
         ]
       }
+      course_week_days: {
+        Row: {
+          created_at: string
+          day_date: string
+          id: string
+          notes: string | null
+          title: string | null
+          week_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_date: string
+          id?: string
+          notes?: string | null
+          title?: string | null
+          week_id: string
+        }
+        Update: {
+          created_at?: string
+          day_date?: string
+          id?: string
+          notes?: string | null
+          title?: string | null
+          week_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_week_days_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "course_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_weeks: {
         Row: {
           channel: Database["public"]["Enums"]["channel"]

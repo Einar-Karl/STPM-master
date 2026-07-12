@@ -38,3 +38,22 @@ export async function updateWeekLocationAction(formData: FormData) {
 
   revalidatePath(`/weeks/${weekId}`);
 }
+
+export async function updateDayPlanAction(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const dayId = requiredString(formData.get("day_id"));
+  const weekId = requiredString(formData.get("week_id"));
+  if (!dayId) return;
+
+  await supabase
+    .from("course_week_days")
+    .update({
+      title: emptyToNull(formData.get("title")),
+      notes: emptyToNull(formData.get("notes")),
+    })
+    .eq("id", dayId);
+
+  revalidatePath(`/weeks/${weekId}`);
+}

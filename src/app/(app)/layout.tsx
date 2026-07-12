@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
+import { getChannelFilter } from "@/lib/channel-filter";
+import { ChannelFilterToggle } from "@/components/channel-filter-toggle";
 
 const navItems = [
   { href: "/", label: "Dashboard" },
@@ -21,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { profile } = await requireStaff();
   if (profile.role === "pending") redirect("/pending-approval");
   const items = profile.role === "admin" ? [...navItems, ...adminNavItems] : navItems;
+  const channelFilter = await getChannelFilter();
 
   return (
     <div className="flex min-h-screen">
@@ -29,7 +32,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <p className="font-semibold text-neutral-900 dark:text-neutral-100">STPM Master</p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">Booking &amp; planning</p>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+        <ChannelFilterToggle initial={channelFilter} />
+        <nav className="flex-1 space-y-1 p-3 pt-0">
           {items.map((item) => (
             <Link
               key={item.href}

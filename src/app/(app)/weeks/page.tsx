@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState, PageHeader, Table, Td, Th } from "@/components/ui";
 import { CHANNELS, type Channel, channelLabel, formatDateRange } from "@/lib/planner";
+import { getChannelFilter } from "@/lib/channel-filter";
 
 export default async function WeeksPage({
   searchParams,
@@ -11,7 +12,15 @@ export default async function WeeksPage({
 }) {
   await requireStaff();
   const { channel } = await searchParams;
-  const active: Channel | "all" = channel === "innie" || channel === "outie" ? channel : "all";
+  const defaultFilter = await getChannelFilter();
+  const active: Channel | "all" =
+    channel === "innie" || channel === "outie"
+      ? channel
+      : channel === "all"
+        ? "all"
+        : defaultFilter === "both"
+          ? "all"
+          : defaultFilter;
 
   const supabase = await createClient();
 
@@ -63,7 +72,7 @@ export default async function WeeksPage({
         {tabs.map((t) => (
           <Link
             key={t.key}
-            href={t.key === "all" ? "/weeks" : `/weeks?channel=${t.key}`}
+            href={`/weeks?channel=${t.key}`}
             className={`rounded-md px-3 py-1.5 text-sm font-medium ${
               active === t.key
                 ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"

@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/auth";
 import { Card, EmptyState, PageHeader, Table, Td, Th } from "@/components/ui";
 import { channelLabel, formatDateRange } from "@/lib/planner";
-import { YearTimeline, YearTimelineLegend, type TimelineBar } from "@/components/year-timeline";
+import { TimelineExplorer, type TimelineBar } from "@/components/year-timeline";
+import { getChannelFilter } from "@/lib/channel-filter";
 
 export default async function DashboardPage({
   searchParams,
@@ -13,6 +14,7 @@ export default async function DashboardPage({
   await requireStaff();
   const { year: yearParam } = await searchParams;
   const year = Number(yearParam) || 2026;
+  const channelFilter = await getChannelFilter();
 
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
@@ -74,7 +76,10 @@ export default async function DashboardPage({
 
   const outieWeeks = (weeks ?? []).filter((w) => w.channel === "outie").length;
   const innieWeeks = (weeks ?? []).filter((w) => w.channel === "innie").length;
-  const upcoming = (weeks ?? []).filter((w) => w.end_date >= today).slice(0, 8);
+  const upcoming = (weeks ?? [])
+    .filter((w) => w.end_date >= today)
+    .filter((w) => channelFilter === "both" || w.channel === channelFilter)
+    .slice(0, 8);
 
   const stats = [
     { label: "Active participants", value: activeTotal, href: "/weeks" },
@@ -111,10 +116,7 @@ export default async function DashboardPage({
       </div>
 
       {timelineBars.length ? (
-        <>
-          <YearTimeline year={year} bars={timelineBars} />
-          <YearTimelineLegend />
-        </>
+        <TimelineExplorer year={year} bars={timelineBars} initialChannel={channelFilter} />
       ) : (
         <Card>
           <EmptyState>No course weeks scheduled for {year} yet.</EmptyState>
