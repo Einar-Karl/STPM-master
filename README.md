@@ -13,7 +13,7 @@ Vercel.
   directly to the Supabase project; keep this in sync if you change the schema.
 - `src/app/login` — staff sign-in.
 - `src/app/(app)` — everything behind login: dashboard, clients, courses,
-  course bookings, hotels, hotel bookings, resources, staff admin.
+  course bookings, hotels, hotel bookings, resources, sales, staff admin.
 - `src/lib/supabase` — browser/server Supabase clients and generated DB types.
 - `src/proxy.ts` — session-refresh + auth-gate (Next.js 16 renamed
   `middleware.ts` to `proxy.ts`; same purpose).
@@ -116,6 +116,29 @@ assign a **lead** and **support** teacher to each course and confirm the
 location; open a course to see the full participant roster (who's on it,
 nationality, school, payment, tour). Manage the assignable teacher list under
 **Teachers**.
+
+The **Day by day** tab on a week is a shareable itinerary: fill in a title and
+plan for each day (Edit plan), then switch to Preview / share to copy the
+programme into an email or print it / save as PDF to send to participants. The
+dashboard timeline bars show the number of **registered participants** per week.
+
+### Sales channel
+
+**Sales** (in the nav) is a light CRM for both channels:
+
+- **Outies** — market intelligence from the participant data: which countries
+  send the most teachers, the top group **coordinators** (repeat accounts worth
+  nurturing), and rule-based suggested sales moves.
+- **Innies** — a cold-call list of Icelandic **schools & kindergartens** with a
+  contact pipeline (New → Contacted → Interested → … → Won/Lost). Each lead has
+  a school-specific, ready-to-send outreach **email draft** (Icelandic or
+  English) offering a study trip built from the destinations STPM runs; copy it
+  into email or open it with one click. Track last-contact date, follow-ups due,
+  notes and an activity log. Rows missing an email get a one-click **Find email**
+  web search. Reykjavík city schools are seeded with the `@rvkskolar.is`
+  convention — confirm the exact address before sending.
+
+The lead list lives in `sales_leads` / `sales_activities` (migration `0008`).
 
 ## Deploying to Vercel
 

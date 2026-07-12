@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -46,7 +48,15 @@ export type Database = {
           phone?: string | null
           type?: Database["public"]["Enums"]["client_type"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       course_bookings: {
         Row: {
@@ -138,6 +148,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "course_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "course_bookings_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
@@ -201,6 +225,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -322,7 +353,15 @@ export type Database = {
           name?: string
           price?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hotel_bookings: {
         Row: {
@@ -371,6 +410,27 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "hotel_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotel_bookings_course_session_id_fkey"
+            columns: ["course_session_id"]
+            isOneToOne: false
+            referencedRelation: "course_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotel_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hotel_bookings_hotel_id_fkey"
             columns: ["hotel_id"]
@@ -450,7 +510,15 @@ export type Database = {
           name?: string
           notes?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hotels_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -512,6 +580,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "resource_bookings_course_session_id_fkey"
+            columns: ["course_session_id"]
+            isOneToOne: false
+            referencedRelation: "course_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "resource_bookings_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
@@ -543,6 +625,110 @@ export type Database = {
           type?: Database["public"]["Enums"]["resource_type"]
         }
         Relationships: []
+      }
+      sales_activities: {
+        Row: {
+          body: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          lead_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          lead_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_activities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "sales_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_leads: {
+        Row: {
+          channel: Database["public"]["Enums"]["channel"]
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          last_contacted_at: string | null
+          municipality: string | null
+          name: string
+          next_follow_up_at: string | null
+          notes: string | null
+          org_type: string
+          phone: string | null
+          stage: Database["public"]["Enums"]["sales_stage"]
+          website: string | null
+        }
+        Insert: {
+          channel?: Database["public"]["Enums"]["channel"]
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          last_contacted_at?: string | null
+          municipality?: string | null
+          name: string
+          next_follow_up_at?: string | null
+          notes?: string | null
+          org_type?: string
+          phone?: string | null
+          stage?: Database["public"]["Enums"]["sales_stage"]
+          website?: string | null
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["channel"]
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          last_contacted_at?: string | null
+          municipality?: string | null
+          name?: string
+          next_follow_up_at?: string | null
+          notes?: string | null
+          org_type?: string
+          phone?: string | null
+          stage?: Database["public"]["Enums"]["sales_stage"]
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_leads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teachers: {
         Row: {
@@ -587,6 +773,13 @@ export type Database = {
       channel: "innie" | "outie"
       client_type: "individual" | "company" | "group"
       resource_type: "room" | "equipment" | "vehicle" | "other"
+      sales_stage:
+        | "new"
+        | "contacted"
+        | "interested"
+        | "negotiating"
+        | "won"
+        | "lost"
       staff_role: "staff" | "admin" | "pending"
     }
     CompositeTypes: {
@@ -719,6 +912,14 @@ export const Constants = {
       channel: ["innie", "outie"],
       client_type: ["individual", "company", "group"],
       resource_type: ["room", "equipment", "vehicle", "other"],
+      sales_stage: [
+        "new",
+        "contacted",
+        "interested",
+        "negotiating",
+        "won",
+        "lost",
+      ],
       staff_role: ["staff", "admin", "pending"],
     },
   },

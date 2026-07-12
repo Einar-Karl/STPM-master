@@ -12,6 +12,7 @@ export type TimelineBar = {
   channel: "innie" | "outie";
   courseCount: number;
   staffedCount: number;
+  participantCount: number;
 };
 
 type Zoom = "year" | "quarter" | "month";
@@ -257,12 +258,12 @@ export function TimelineExplorer({
                           <Link
                             key={b.id}
                             href={`/weeks/${b.id}`}
-                            title={`${formatDateRange(b.start_date, b.end_date)} · ${b.location} · ${b.courseCount} courses, ${b.staffedCount} staffed`}
+                            title={`${formatDateRange(b.start_date, b.end_date)} · ${b.location} · ${b.participantCount} registered · ${b.courseCount} courses, ${b.staffedCount} staffed`}
                             className={`absolute top-2 flex h-9 items-center justify-center overflow-hidden rounded px-1.5 text-xs font-semibold text-white shadow-sm ring-2 ring-white transition-colors dark:ring-neutral-950 ${CHANNEL_COLOR[b.channel]}`}
                             style={{ left: `${left}%`, width: `max(${width}%, 26px)` }}
                           >
                             <span className={`absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${staffingDot}`} aria-hidden />
-                            <span className="truncate">{b.courseCount}</span>
+                            <span className="truncate">{b.participantCount}</span>
                           </Link>
                         );
                       })}
@@ -289,7 +290,7 @@ export function TimelineExplorer({
           <span className="h-2 w-2 rounded-full bg-amber-400" /> partial
           <span className="h-2 w-2 rounded-full bg-red-400" /> none
         </span>
-        <span>Number in bar = courses that week</span>
+        <span>Number in bar = registered participants</span>
       </div>
     </div>
   );

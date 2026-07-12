@@ -71,6 +71,7 @@ export default async function DashboardPage({
       channel: w.channel,
       courseCount: agg.total,
       staffedCount: agg.staffed,
+      participantCount: participantsByWeek.get(w.id) ?? 0,
     };
   });
 
