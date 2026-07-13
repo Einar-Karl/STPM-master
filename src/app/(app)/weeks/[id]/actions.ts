@@ -3,7 +3,37 @@
 import { revalidatePath } from "next/cache";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { emptyToNull, requiredString } from "@/lib/forms";
+import { emptyToNull, optionalNumber, requiredString } from "@/lib/forms";
+
+export async function addCourseToWeekAction(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const weekId = requiredString(formData.get("week_id"));
+  const courseId = requiredString(formData.get("course_id"));
+  if (!weekId || !courseId) return;
+
+  const { data: week } = await supabase
+    .from("course_weeks")
+    .select("start_date, end_date, location")
+    .eq("id", weekId)
+    .single();
+  if (!week) return;
+
+  // The insert trigger auto-creates one course_session_days row per seminar day.
+  await supabase.from("course_sessions").insert({
+    course_id: courseId,
+    week_id: weekId,
+    location: week.location,
+    start_date: week.start_date,
+    end_date: week.end_date,
+    capacity: optionalNumber(formData.get("capacity")),
+    lead_teacher_id: emptyToNull(formData.get("lead_teacher_id")),
+    status: "confirmed",
+  });
+
+  revalidatePath(`/weeks/${weekId}`);
+}
 
 export async function assignTeachersAction(formData: FormData) {
   await requireStaff();

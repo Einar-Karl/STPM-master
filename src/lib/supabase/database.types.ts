@@ -170,6 +170,41 @@ export type Database = {
           },
         ]
       }
+      course_session_days: {
+        Row: {
+          created_at: string
+          day_date: string
+          id: string
+          notes: string | null
+          session_id: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          day_date: string
+          id?: string
+          notes?: string | null
+          session_id: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          day_date?: string
+          id?: string
+          notes?: string | null
+          session_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_session_days_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "course_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_sessions: {
         Row: {
           capacity: number | null
