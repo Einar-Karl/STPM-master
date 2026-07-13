@@ -526,6 +526,75 @@ export type Database = {
           },
         ]
       }
+      innie_trips: {
+        Row: {
+          created_at: string
+          depart_date: string | null
+          destination: string
+          flight_cost: number
+          free_seats: number
+          hotel_cost: number
+          id: string
+          label: string
+          margin: number
+          note: string | null
+          paid_total: number | null
+          pax: number
+          price_avg: number | null
+          price_max: number | null
+          price_min: number | null
+          revenue_total: number
+          school: string | null
+          service_fee: number
+          trip_no: number | null
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          depart_date?: string | null
+          destination: string
+          flight_cost?: number
+          free_seats?: number
+          hotel_cost?: number
+          id?: string
+          label: string
+          margin?: number
+          note?: string | null
+          paid_total?: number | null
+          pax?: number
+          price_avg?: number | null
+          price_max?: number | null
+          price_min?: number | null
+          revenue_total?: number
+          school?: string | null
+          service_fee?: number
+          trip_no?: number | null
+          year: number
+        }
+        Update: {
+          created_at?: string
+          depart_date?: string | null
+          destination?: string
+          flight_cost?: number
+          free_seats?: number
+          hotel_cost?: number
+          id?: string
+          label?: string
+          margin?: number
+          note?: string | null
+          paid_total?: number | null
+          pax?: number
+          price_avg?: number | null
+          price_max?: number | null
+          price_min?: number | null
+          revenue_total?: number
+          school?: string | null
+          service_fee?: number
+          trip_no?: number | null
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
