@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import { channelLabel, formatDateRange, paymentBadgeClass } from "@/lib/planner";
 import { SessionSchedule } from "./session-schedule";
+import { SheetImport } from "./sheet-import";
 
 export default async function SessionRosterPage({
   params,
@@ -30,7 +31,7 @@ export default async function SessionRosterPage({
   const { data: session } = await supabase
     .from("course_sessions")
     .select(
-      "id, week_id, courses(name), course_weeks(start_date, end_date, location, channel), lead:lead_teacher_id(name), support:support_teacher_id(name)"
+      "id, week_id, courses(name), course_weeks(start_date, end_date, location, channel, signup_sheet_url), lead:lead_teacher_id(name), support:support_teacher_id(name)"
     )
     .eq("id", id)
     .single();
@@ -57,6 +58,7 @@ export default async function SessionRosterPage({
     end_date: string;
     location: string;
     channel: "innie" | "outie";
+    signup_sheet_url: string | null;
   } | null;
   const lead = (session.lead as unknown as { name: string } | null)?.name;
   const support = (session.support as unknown as { name: string } | null)?.name;
@@ -119,7 +121,9 @@ export default async function SessionRosterPage({
       </div>
 
       {activeView === "roster" ? (
-        participants?.length ? (
+        <div className="space-y-4">
+          <SheetImport sessionId={id} defaultUrl={week?.signup_sheet_url ?? null} />
+          {participants?.length ? (
           <Table>
             <thead>
               <tr>
@@ -160,11 +164,12 @@ export default async function SessionRosterPage({
               ))}
             </tbody>
           </Table>
-        ) : (
-          <Card>
-            <EmptyState>No participants booked on this course yet.</EmptyState>
-          </Card>
-        )
+          ) : (
+            <Card>
+              <EmptyState>No participants booked on this course yet.</EmptyState>
+            </Card>
+          )}
+        </div>
       ) : sessionDays?.length ? (
         <SessionSchedule
           sessionId={id}

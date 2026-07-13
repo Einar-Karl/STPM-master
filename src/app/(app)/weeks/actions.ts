@@ -36,6 +36,17 @@ export async function createCourseWeekAction(formData: FormData) {
   // The unique (start_date, location, channel) constraint blocks duplicates.
   if (error || !data) redirect(`/weeks/new?error=${encodeURIComponent(error?.code ?? "unknown")}`);
 
+  // If this week came from a sales lead, close the loop: mark it won and log it.
+  const fromLead = emptyToNull(formData.get("from_lead"));
+  if (fromLead) {
+    await supabase.from("sales_leads").update({ stage: "won" }).eq("id", fromLead);
+    await supabase.from("sales_activities").insert({
+      lead_id: fromLead,
+      kind: "stage",
+      body: `Converted to course week: ${label}`,
+    });
+  }
+
   revalidatePath("/weeks");
   redirect(`/weeks/${data.id}`);
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState, PageHeader, Table, Td, Th } from "@/components/ui";
-import { channelLabel, formatDateRange } from "@/lib/planner";
+import { formatDateRange } from "@/lib/planner";
 
 type Agg = { participants: number; yes: number; no: number; unknown: number };
 const empty = (): Agg => ({ participants: 0, yes: 0, no: 0, unknown: 0 });
@@ -16,6 +16,8 @@ const uptake = (a: Agg) => {
   const known = a.yes + a.no;
   return known ? Math.round((a.yes / known) * 100) : null;
 };
+// Tours are offered to Outies on Iceland weeks only.
+const offersTours = (location: string) => location.trim().toLowerCase() === "iceland";
 
 function UptakeBar({ a }: { a: Agg }) {
   const pct = uptake(a);
@@ -58,103 +60,71 @@ export default async function ToursPage() {
 
   const sessionWeek = new Map<string, string>();
   for (const s of sessions ?? []) if (s.week_id) sessionWeek.set(s.id, s.week_id);
+  type WeekMeta = NonNullable<typeof weeks>[number];
+  const weekMeta = new Map((weeks ?? []).map((w) => [w.id, w] as const));
 
-  const overall = empty();
+  const offered = empty(); // Iceland (tours offered)
   const byWeek = new Map<string, Agg>();
-  const byLocation = new Map<string, Agg>();
-  const weekMeta = new Map(
-    (weeks ?? []).map((w) => [w.id, w] as const),
-  );
+  const otherByLocation = new Map<string, number>(); // non-Iceland participant counts
 
   for (const b of bookings ?? []) {
     if (b.status === "cancelled") continue;
-    add(overall, b.tour_booked);
     const wk = sessionWeek.get(b.session_id);
     if (!wk) continue;
     const w = weekMeta.get(wk);
     if (!w) continue;
-    if (!byWeek.has(wk)) byWeek.set(wk, empty());
-    add(byWeek.get(wk)!, b.tour_booked);
-    if (!byLocation.has(w.location)) byLocation.set(w.location, empty());
-    add(byLocation.get(w.location)!, b.tour_booked);
+    if (offersTours(w.location)) {
+      add(offered, b.tour_booked);
+      if (!byWeek.has(wk)) byWeek.set(wk, empty());
+      add(byWeek.get(wk)!, b.tour_booked);
+    } else {
+      otherByLocation.set(w.location, (otherByLocation.get(w.location) ?? 0) + 1);
+    }
   }
 
-  const overallKnown = overall.yes + overall.no;
-  const locations = [...byLocation.entries()].sort((a, b) => b[1].yes - a[1].yes);
-  type WeekMeta = NonNullable<typeof weeks>[number];
+  const known = offered.yes + offered.no;
+  const overallUptake = known ? Math.round((offered.yes / known) * 100) : null;
   const weekRows = (weeks ?? [])
+    .filter((w) => offersTours(w.location))
     .map((w) => ({ w, a: byWeek.get(w.id) }))
-    .filter((r): r is { w: WeekMeta; a: Agg } => !!r.a && r.a.yes + r.a.no > 0)
+    .filter((r): r is { w: WeekMeta; a: Agg } => !!r.a && r.a.participants > 0)
     .sort((a, b) => b.a.yes - a.a.yes);
+  const otherLocations = [...otherByLocation.entries()].sort((a, b) => b[1] - a[1]);
 
   return (
     <>
       <PageHeader
         title="Tours"
-        description="Excursion / tour uptake among course participants — who has booked the optional tour and where the opportunity (and the missing data) is."
+        description="Optional excursions are offered to Outies on Iceland weeks (e.g. the Golden Circle). This is how many participants take them up — and where the numbers land per week."
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Participants" value={String(overall.participants)} />
+        <Stat label="Iceland participants" value={String(offered.participants)} sub="tour-eligible" />
         <Stat
-          label="Tour booked"
-          value={String(overall.yes)}
-          sub={overallKnown ? `${Math.round((overall.yes / overallKnown) * 100)}% of those who answered` : undefined}
+          label="Booked a tour"
+          value={String(offered.yes)}
+          sub={overallUptake !== null ? `${overallUptake}% uptake` : undefined}
         />
-        <Stat label="No tour" value={String(overall.no)} />
+        <Stat label="Declined" value={String(offered.no)} />
         <Stat
-          label="Unknown"
-          value={String(overall.unknown)}
-          sub="Tour not recorded yet"
+          label="Not recorded"
+          value={String(offered.unknown)}
+          sub={offered.unknown ? "no answer captured" : "all captured"}
         />
       </div>
 
       <Card>
-        <h2 className="mb-3 text-sm font-semibold text-neutral-900 dark:text-neutral-100">By location</h2>
-        <Table>
-          <thead>
-            <tr>
-              <Th>Location</Th>
-              <Th>Participants</Th>
-              <Th>Booked</Th>
-              <Th>No</Th>
-              <Th>Unknown</Th>
-              <Th>Uptake</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {locations.map(([loc, a]) => (
-              <tr key={loc}>
-                <Td className="font-medium">{loc}</Td>
-                <Td>{a.participants}</Td>
-                <Td className="font-medium text-emerald-600 dark:text-emerald-400">{a.yes}</Td>
-                <Td>{a.no}</Td>
-                <Td>{a.unknown ? <span className="text-amber-600 dark:text-amber-400">{a.unknown}</span> : 0}</Td>
-                <Td>
-                  <UptakeBar a={a} />
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-        <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-          Uptake = booked ÷ (booked + declined), ignoring participants whose tour choice hasn&apos;t been
-          recorded.
-        </p>
-      </Card>
-
-      <Card>
         <h2 className="mb-3 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-          By course week
+          Iceland weeks — tour uptake
         </h2>
         {weekRows.length ? (
           <Table>
             <thead>
               <tr>
                 <Th>Week</Th>
-                <Th>Location</Th>
-                <Th>Channel</Th>
+                <Th>Participants</Th>
                 <Th>Booked</Th>
+                <Th>Declined</Th>
                 <Th>Uptake</Th>
               </tr>
             </thead>
@@ -166,12 +136,9 @@ export default async function ToursPage() {
                       {formatDateRange(w.start_date, w.end_date)}
                     </Link>
                   </Td>
-                  <Td>{w.location}</Td>
-                  <Td>{channelLabel(w.channel)}</Td>
-                  <Td>
-                    {a.yes}
-                    <span className="text-neutral-400"> / {a.yes + a.no + a.unknown}</span>
-                  </Td>
+                  <Td>{a.participants}</Td>
+                  <Td className="font-medium text-emerald-600 dark:text-emerald-400">{a.yes}</Td>
+                  <Td>{a.no}</Td>
                   <Td>
                     <UptakeBar a={a} />
                   </Td>
@@ -180,16 +147,46 @@ export default async function ToursPage() {
             </tbody>
           </Table>
         ) : (
-          <EmptyState>No tour bookings recorded yet.</EmptyState>
+          <EmptyState>No Iceland course weeks with participants yet.</EmptyState>
         )}
+        <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+          Uptake = booked ÷ (booked + declined). Historically around{" "}
+          <span className="font-medium text-neutral-700 dark:text-neutral-300">two thirds</span> of Iceland
+          participants take the tour — a useful number for booking with the excursion operator.
+        </p>
       </Card>
 
-      {overall.unknown > 0 && (
-        <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40">
-          <p className="text-sm text-amber-800 dark:text-amber-300">
-            <span className="font-semibold">{overall.unknown} participants</span> have no tour choice
-            recorded. Capturing this at sign-up (e.g. a tour question on the sign-up sheet) would make this
-            picture complete and let you forecast tour numbers before each week.
+      {otherLocations.length > 0 && (
+        <Card>
+          <h2 className="mb-1 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+            Other destinations
+          </h2>
+          <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
+            Tours aren&apos;t offered on these weeks, so participants aren&apos;t asked — they&apos;re shown here
+            only for completeness.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {otherLocations.map(([loc, n]) => (
+              <span
+                key={loc}
+                className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 px-3 py-1 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-400"
+              >
+                {loc}
+                <span className="text-neutral-400">· {n}</span>
+              </span>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {offered.unknown > 0 && (
+        <Card>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+              {offered.unknown} Iceland participants
+            </span>{" "}
+            have no tour answer recorded. Capturing the tour question on the sign-up sheet — which now imports
+            straight into the roster — would make the forecast complete before each week starts.
           </p>
         </Card>
       )}

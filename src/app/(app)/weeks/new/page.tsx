@@ -13,10 +13,19 @@ const ERRORS: Record<string, string> = {
 export default async function NewWeekPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    channel?: string;
+    location?: string;
+    label?: string;
+    notes?: string;
+    from_lead?: string;
+    lead_name?: string;
+  }>;
 }) {
   await requireStaff();
-  const { error } = await searchParams;
+  const sp = await searchParams;
+  const channel = sp.channel === "innie" || sp.channel === "outie" ? sp.channel : "outie";
 
   return (
     <>
@@ -28,12 +37,22 @@ export default async function NewWeekPage({
         description="Create a week, then add the courses running in it. A day-by-day plan is generated automatically."
       />
 
-      {error && <ErrorBanner message={ERRORS[error] ?? "Could not create the week. Please try again."} />}
+      {sp.from_lead && sp.lead_name && (
+        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300">
+          Converting sales lead <span className="font-semibold">{sp.lead_name}</span> into a course week. When
+          you save, the lead is marked <span className="font-semibold">Won</span> and the conversion is logged.
+        </p>
+      )}
+
+      {sp.error && (
+        <ErrorBanner message={ERRORS[sp.error] ?? "Could not create the week. Please try again."} />
+      )}
 
       <Card>
         <form action={createCourseWeekAction} className="grid gap-4 sm:grid-cols-2">
+          {sp.from_lead && <input type="hidden" name="from_lead" value={sp.from_lead} />}
           <Field label="Channel" name="channel" required>
-            <Select id="channel" name="channel" defaultValue="outie">
+            <Select id="channel" name="channel" defaultValue={channel}>
               {CHANNELS.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label} — {c.blurb}
@@ -42,7 +61,13 @@ export default async function NewWeekPage({
             </Select>
           </Field>
           <Field label="Location" name="location" required>
-            <Input id="location" name="location" required placeholder="e.g. Iceland, Spain, Gdansk" />
+            <Input
+              id="location"
+              name="location"
+              required
+              defaultValue={sp.location ?? ""}
+              placeholder="e.g. Iceland, Spain, Gdansk"
+            />
           </Field>
           <Field label="Start date" name="start_date" required>
             <Input id="start_date" name="start_date" type="date" required />
@@ -52,12 +77,17 @@ export default async function NewWeekPage({
           </Field>
           <div className="sm:col-span-2">
             <Field label="Label (optional)" name="label">
-              <Input id="label" name="label" placeholder="Defaults to “Location · dates”" />
+              <Input
+                id="label"
+                name="label"
+                defaultValue={sp.label ?? ""}
+                placeholder="Defaults to “Location · dates”"
+              />
             </Field>
           </div>
           <div className="sm:col-span-2">
             <Field label="Notes (optional)" name="notes">
-              <Textarea id="notes" name="notes" rows={2} />
+              <Textarea id="notes" name="notes" rows={2} defaultValue={sp.notes ?? ""} />
             </Field>
           </div>
           <div className="sm:col-span-2 flex gap-2">
