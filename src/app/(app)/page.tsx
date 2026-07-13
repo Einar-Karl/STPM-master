@@ -79,7 +79,7 @@ export default async function DashboardPage({
   const innieWeeks = (weeks ?? []).filter((w) => w.channel === "innie").length;
   const upcoming = (weeks ?? [])
     .filter((w) => w.end_date >= today)
-    .filter((w) => channelFilter === "both" || w.channel === channelFilter)
+    .filter((w) => w.channel === channelFilter)
     .slice(0, 8);
 
   const stats = [

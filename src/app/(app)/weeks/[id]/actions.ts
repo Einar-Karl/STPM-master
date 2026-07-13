@@ -39,6 +39,24 @@ export async function updateWeekLocationAction(formData: FormData) {
   revalidatePath(`/weeks/${weekId}`);
 }
 
+export async function updateWeekLinksAction(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const weekId = requiredString(formData.get("week_id"));
+  if (!weekId) return;
+
+  await supabase
+    .from("course_weeks")
+    .update({
+      signup_sheet_url: emptyToNull(formData.get("signup_sheet_url")),
+      hotel_questionnaire_url: emptyToNull(formData.get("hotel_questionnaire_url")),
+    })
+    .eq("id", weekId);
+
+  revalidatePath(`/weeks/${weekId}`);
+}
+
 export async function updateDayPlanAction(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();

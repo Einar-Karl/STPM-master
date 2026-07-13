@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   EmptyState,
+  Field,
   Input,
   PageHeader,
   Select,
@@ -15,7 +16,18 @@ import {
 } from "@/components/ui";
 import { channelLabel, formatDateRange } from "@/lib/planner";
 import { WeekItinerary } from "@/components/week-itinerary";
-import { assignTeachersAction, updateDayPlanAction, updateWeekLocationAction } from "./actions";
+import {
+  assignTeachersAction,
+  updateDayPlanAction,
+  updateWeekLinksAction,
+  updateWeekLocationAction,
+} from "./actions";
+
+const VIEWS = [
+  { key: "week", label: "Week plan" },
+  { key: "days", label: "Day by day" },
+  { key: "rooms", label: "Rooms & hotel" },
+] as const;
 
 export default async function WeekDetailPage({
   params,
@@ -27,31 +39,43 @@ export default async function WeekDetailPage({
   await requireStaff();
   const { id } = await params;
   const { view } = await searchParams;
-  const activeView = view === "days" ? "days" : "week";
+  const activeView = VIEWS.some((v) => v.key === view) ? (view as (typeof VIEWS)[number]["key"]) : "week";
   const supabase = await createClient();
 
   const { data: week } = await supabase.from("course_weeks").select("*").eq("id", id).single();
   if (!week) notFound();
 
-  const [{ data: sessions }, { data: teachers }, { data: bookings }, { data: days }] = await Promise.all([
-    supabase
-      .from("course_sessions")
-      .select(
-        "id, lead_teacher_id, support_teacher_id, capacity, courses(name), lead:lead_teacher_id(name), support:support_teacher_id(name)"
-      )
-      .eq("week_id", id),
-    supabase.from("teachers").select("id, name, code, active").order("sort_order", { ascending: true }),
-    supabase.from("course_bookings").select("session_id, status"),
-    supabase.from("course_week_days").select("*").eq("week_id", id).order("day_date", { ascending: true }),
-  ]);
+  const [{ data: sessions }, { data: teachers }, { data: bookings }, { data: days }, { data: hotelBookings }] =
+    await Promise.all([
+      supabase
+        .from("course_sessions")
+        .select(
+          "id, lead_teacher_id, support_teacher_id, capacity, courses(name), lead:lead_teacher_id(name), support:support_teacher_id(name)",
+        )
+        .eq("week_id", id),
+      supabase.from("teachers").select("id, name, code, active").order("sort_order", { ascending: true }),
+      supabase.from("course_bookings").select("session_id, status, payment_status"),
+      supabase.from("course_week_days").select("*").eq("week_id", id).order("day_date", { ascending: true }),
+      supabase
+        .from("hotel_bookings")
+        .select(
+          "id, guest_name, guests, check_in, check_out, status, hotels(name), hotel_rooms(name), course_sessions!inner(week_id)",
+        )
+        .eq("course_sessions.week_id", id)
+        .order("check_in", { ascending: true }),
+    ]);
 
   const activeTeachers = (teachers ?? []).filter((t) => t.active);
 
-  // participant counts per session (exclude cancelled)
+  // participant + paid counts per session (exclude cancelled)
   const counts = new Map<string, number>();
+  const paidCounts = new Map<string, number>();
   for (const b of bookings ?? []) {
     if (b.status === "cancelled") continue;
     counts.set(b.session_id, (counts.get(b.session_id) ?? 0) + 1);
+    if ((b.payment_status ?? "").toUpperCase() === "PAID") {
+      paidCounts.set(b.session_id, (paidCounts.get(b.session_id) ?? 0) + 1);
+    }
   }
 
   const rows = (sessions ?? [])
@@ -61,6 +85,7 @@ export default async function WeekDetailPage({
       leadName: (s.lead as unknown as { name: string } | null)?.name ?? null,
       supportName: (s.support as unknown as { name: string } | null)?.name ?? null,
       count: counts.get(s.id) ?? 0,
+      paid: paidCounts.get(s.id) ?? 0,
     }))
     .sort((a, b) => a.courseName.localeCompare(b.courseName));
 
@@ -71,6 +96,25 @@ export default async function WeekDetailPage({
     count: s.count,
   }));
 
+  const weekTotalParticipants = rows.reduce((sum, r) => sum + r.count, 0);
+  const weekTotalPaid = rows.reduce((sum, r) => sum + r.paid, 0);
+
+  const roomGroups = (() => {
+    const map = new Map<
+      string,
+      { key: string; label: string; bookings: NonNullable<typeof hotelBookings> }
+    >();
+    for (const b of hotelBookings ?? []) {
+      const hotel = (b.hotels as unknown as { name: string } | null)?.name ?? "Unknown hotel";
+      const room = (b.hotel_rooms as unknown as { name: string } | null)?.name ?? "Unassigned room";
+      const key = `${hotel}__${room}`;
+      const group = map.get(key) ?? { key, label: `${hotel} · ${room}`, bookings: [] };
+      group.bookings.push(b);
+      map.set(key, group);
+    }
+    return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+  })();
+
   return (
     <>
       <Link href="/weeks" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
@@ -78,7 +122,9 @@ export default async function WeekDetailPage({
       </Link>
       <PageHeader
         title={`${formatDateRange(week.start_date, week.end_date)} · ${week.location}`}
-        description={`${channelLabel(week.channel)} · ${rows.length} courses running this week`}
+        description={`${channelLabel(week.channel)} · ${rows.length} courses running this week${
+          weekTotalParticipants ? ` · ${weekTotalPaid}/${weekTotalParticipants} participants paid` : ""
+        }`}
       />
 
       <Card>
@@ -97,27 +143,68 @@ export default async function WeekDetailPage({
         </form>
       </Card>
 
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-900 dark:text-neutral-100">External links</h2>
+        <form action={updateWeekLinksAction} className="grid gap-3 sm:grid-cols-2">
+          <input type="hidden" name="week_id" value={week.id} />
+          <Field label="Sign-up sheet (Google Sheet)" name="signup_sheet_url">
+            <Input
+              name="signup_sheet_url"
+              type="url"
+              defaultValue={week.signup_sheet_url ?? ""}
+              placeholder="https://docs.google.com/spreadsheets/..."
+            />
+          </Field>
+          <Field label="Hotel questionnaire" name="hotel_questionnaire_url">
+            <Input
+              name="hotel_questionnaire_url"
+              type="url"
+              defaultValue={week.hotel_questionnaire_url ?? ""}
+              placeholder="https://forms.gle/..."
+            />
+          </Field>
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+            <Button type="submit" variant="ghost">
+              Save links
+            </Button>
+            {week.signup_sheet_url && (
+              <a
+                href={week.signup_sheet_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-sky-600 hover:underline dark:text-sky-400"
+              >
+                Open sign-up sheet &rarr;
+              </a>
+            )}
+            {week.hotel_questionnaire_url && (
+              <a
+                href={week.hotel_questionnaire_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-sky-600 hover:underline dark:text-sky-400"
+              >
+                Open hotel questionnaire &rarr;
+              </a>
+            )}
+          </div>
+        </form>
+      </Card>
+
       <div className="flex gap-2">
-        <Link
-          href={`/weeks/${week.id}?view=week`}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-            activeView === "week"
-              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-              : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          }`}
-        >
-          Week plan
-        </Link>
-        <Link
-          href={`/weeks/${week.id}?view=days`}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-            activeView === "days"
-              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-              : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          }`}
-        >
-          Day by day
-        </Link>
+        {VIEWS.map((v) => (
+          <Link
+            key={v.key}
+            href={`/weeks/${week.id}?view=${v.key}`}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+              activeView === v.key
+                ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            }`}
+          >
+            {v.label}
+          </Link>
+        ))}
       </div>
 
       {activeView === "week" ? (
@@ -127,6 +214,7 @@ export default async function WeekDetailPage({
               <tr>
                 <Th>Course</Th>
                 <Th>Participants</Th>
+                <Th>Paid</Th>
                 <Th>Lead teacher</Th>
                 <Th>Support teacher</Th>
                 <Th>
@@ -145,6 +233,19 @@ export default async function WeekDetailPage({
                   <Td>
                     {s.count}
                     {s.capacity ? <span className="text-neutral-400"> / {s.capacity}</span> : null}
+                  </Td>
+                  <Td>
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                        s.count > 0 && s.paid === s.count
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          : s.paid > 0
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                            : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                      }`}
+                    >
+                      {s.paid}/{s.count} paid
+                    </span>
                   </Td>
                   <Td>
                     <form action={assignTeachersAction} id={`f-${s.id}`} className="contents">
@@ -195,23 +296,74 @@ export default async function WeekDetailPage({
             <EmptyState>No course sessions scheduled for this week.</EmptyState>
           </Card>
         )
-      ) : days?.length ? (
-        <WeekItinerary
-          week={{
-            id: week.id,
-            start_date: week.start_date,
-            end_date: week.end_date,
-            location: week.location,
-            channel: week.channel,
-          }}
-          days={days.map((d) => ({ id: d.id, day_date: d.day_date, title: d.title, notes: d.notes }))}
-          courses={itineraryCourses}
-          updateDayPlanAction={updateDayPlanAction}
-        />
+      ) : activeView === "days" ? (
+        days?.length ? (
+          <WeekItinerary
+            week={{
+              id: week.id,
+              start_date: week.start_date,
+              end_date: week.end_date,
+              location: week.location,
+              channel: week.channel,
+            }}
+            days={days.map((d) => ({ id: d.id, day_date: d.day_date, title: d.title, notes: d.notes }))}
+            courses={itineraryCourses}
+            updateDayPlanAction={updateDayPlanAction}
+          />
+        ) : (
+          <Card>
+            <EmptyState>No day-by-day plan yet.</EmptyState>
+          </Card>
+        )
       ) : (
-        <Card>
-          <EmptyState>No day-by-day plan yet.</EmptyState>
-        </Card>
+        <div className="space-y-3">
+          <Card>
+            <h2 className="mb-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              Hotel questionnaire
+            </h2>
+            {week.hotel_questionnaire_url ? (
+              <a
+                href={week.hotel_questionnaire_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-sky-600 hover:underline dark:text-sky-400"
+              >
+                Open the accommodation questionnaire &rarr;
+              </a>
+            ) : (
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                No questionnaire link set yet — add one above under &ldquo;External links&rdquo;.
+              </p>
+            )}
+          </Card>
+
+          {roomGroups.length ? (
+            roomGroups.map((g) => (
+              <Card key={g.key}>
+                <p className="mb-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100">{g.label}</p>
+                <ul className="space-y-1">
+                  {g.bookings.map((b) => (
+                    <li key={b.id} className="flex items-center justify-between text-sm">
+                      <span>
+                        {b.guest_name}
+                        <span className="ml-1 text-xs text-neutral-500 dark:text-neutral-400">
+                          ({b.guests} guest{b.guests === 1 ? "" : "s"})
+                        </span>
+                      </span>
+                      <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                        {b.check_in} &rarr; {b.check_out}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <EmptyState>No hotel bookings linked to this week&apos;s courses yet.</EmptyState>
+            </Card>
+          )}
+        </div>
       )}
     </>
   );

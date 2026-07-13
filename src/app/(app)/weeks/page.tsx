@@ -18,9 +18,7 @@ export default async function WeeksPage({
       ? channel
       : channel === "all"
         ? "all"
-        : defaultFilter === "both"
-          ? "all"
-          : defaultFilter;
+        : defaultFilter;
 
   const supabase = await createClient();
 

@@ -297,30 +297,36 @@ export type Database = {
           channel: Database["public"]["Enums"]["channel"]
           created_at: string
           end_date: string
+          hotel_questionnaire_url: string | null
           id: string
           label: string
           location: string
           notes: string | null
+          signup_sheet_url: string | null
           start_date: string
         }
         Insert: {
           channel?: Database["public"]["Enums"]["channel"]
           created_at?: string
           end_date: string
+          hotel_questionnaire_url?: string | null
           id?: string
           label: string
           location: string
           notes?: string | null
+          signup_sheet_url?: string | null
           start_date: string
         }
         Update: {
           channel?: Database["public"]["Enums"]["channel"]
           created_at?: string
           end_date?: string
+          hotel_questionnaire_url?: string | null
           id?: string
           label?: string
           location?: string
           notes?: string | null
+          signup_sheet_url?: string | null
           start_date?: string
         }
         Relationships: []
