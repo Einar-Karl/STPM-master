@@ -2,6 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+  // Public webhooks (e.g. Kajabi registration intake) authenticate themselves
+  // with a shared secret and must never be bounced to the login page.
+  if (request.nextUrl.pathname.startsWith("/api/webhooks")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -3,8 +3,11 @@ import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
+  Button,
   Card,
   EmptyState,
+  Field,
+  Input,
   PageHeader,
   StatusBadge,
   Table,
@@ -14,6 +17,7 @@ import {
 import { channelLabel, formatDateRange, paymentBadgeClass } from "@/lib/planner";
 import { SessionSchedule } from "./session-schedule";
 import { SheetImport } from "./sheet-import";
+import { updateRegistrationKeyAction } from "./actions";
 
 export default async function SessionRosterPage({
   params,
@@ -31,7 +35,7 @@ export default async function SessionRosterPage({
   const { data: session } = await supabase
     .from("course_sessions")
     .select(
-      "id, week_id, courses(name), course_weeks(start_date, end_date, location, channel, signup_sheet_url), lead:lead_teacher_id(name), support:support_teacher_id(name)"
+      "id, week_id, registration_key, courses(name), course_weeks(start_date, end_date, location, channel, signup_sheet_url), lead:lead_teacher_id(name), support:support_teacher_id(name)"
     )
     .eq("id", id)
     .single();
@@ -123,6 +127,32 @@ export default async function SessionRosterPage({
       {activeView === "roster" ? (
         <div className="space-y-4">
           <SheetImport sessionId={id} defaultUrl={week?.signup_sheet_url ?? null} />
+          <Card>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="min-w-[16rem] flex-1">
+                <Field label="Website registration key" name="registration_key">
+                  <form action={updateRegistrationKeyAction} className="flex gap-2">
+                    <input type="hidden" name="session_id" value={id} />
+                    <Input
+                      name="registration_key"
+                      defaultValue={session.registration_key ?? ""}
+                      placeholder="e.g. ai-education-jul12"
+                    />
+                    <Button type="submit" variant="ghost">
+                      Save
+                    </Button>
+                  </form>
+                </Field>
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  Registrations from Kajabi that carry this key land on this roster automatically. See{" "}
+                  <Link href="/registrations" className="underline">
+                    Registrations
+                  </Link>{" "}
+                  for the setup.
+                </p>
+              </div>
+            </div>
+          </Card>
           {participants?.length ? (
           <Table>
             <thead>

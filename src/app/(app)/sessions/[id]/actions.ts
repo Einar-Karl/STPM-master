@@ -23,3 +23,19 @@ export async function updateSessionDayAction(formData: FormData) {
 
   revalidatePath(`/sessions/${sessionId}`);
 }
+
+export async function updateRegistrationKeyAction(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const sessionId = requiredString(formData.get("session_id"));
+  if (!sessionId) return;
+
+  await supabase
+    .from("course_sessions")
+    .update({ registration_key: emptyToNull(formData.get("registration_key")) })
+    .eq("id", sessionId);
+
+  revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath("/registrations");
+}

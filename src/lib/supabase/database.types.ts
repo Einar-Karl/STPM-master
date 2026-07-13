@@ -217,6 +217,7 @@ export type Database = {
           lead_teacher_id: string | null
           location: string | null
           notes: string | null
+          registration_key: string | null
           start_date: string
           status: Database["public"]["Enums"]["booking_status"]
           support_teacher_id: string | null
@@ -233,6 +234,7 @@ export type Database = {
           lead_teacher_id?: string | null
           location?: string | null
           notes?: string | null
+          registration_key?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["booking_status"]
           support_teacher_id?: string | null
@@ -249,6 +251,7 @@ export type Database = {
           lead_teacher_id?: string | null
           location?: string | null
           notes?: string | null
+          registration_key?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["booking_status"]
           support_teacher_id?: string | null
@@ -653,6 +656,53 @@ export type Database = {
           role?: Database["public"]["Enums"]["staff_role"]
         }
         Relationships: []
+      }
+      registration_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          email: string | null
+          id: string
+          participant_name: string | null
+          raw: Json | null
+          registration_key: string | null
+          session_id: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          email?: string | null
+          id?: string
+          participant_name?: string | null
+          raw?: Json | null
+          registration_key?: string | null
+          session_id?: string | null
+          source?: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          email?: string | null
+          id?: string
+          participant_name?: string | null
+          raw?: Json | null
+          registration_key?: string | null
+          session_id?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "course_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resource_bookings: {
         Row: {
