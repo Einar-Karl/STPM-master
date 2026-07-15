@@ -21,7 +21,7 @@ export default async function DashboardPage({
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year + 1}-01-01`;
 
-  const [{ data: weeks }, { data: yearWeeks }, { data: sessions }, { data: bookings }] = await Promise.all([
+  const [{ data: weeks }, { data: yearWeeks }, { data: sessions }, { data: bookings }, { data: retros }, { data: dueLeads }] = await Promise.all([
     supabase
       .from("course_weeks")
       .select("id, start_date, end_date, location, channel")
@@ -34,7 +34,22 @@ export default async function DashboardPage({
       .order("start_date", { ascending: true }),
     supabase.from("course_sessions").select("id, week_id, lead_teacher_id"),
     supabase.from("course_bookings").select("session_id, status, payment_status"),
+    supabase.from("week_retros").select("week_id"),
+    supabase
+      .from("sales_leads")
+      .select("id, name, next_follow_up_at")
+      .lte("next_follow_up_at", today)
+      .not("stage", "in", "(won,lost)"),
   ]);
+
+  // Weeks that ended in the last 30 days without any retro entry yet.
+  const retroWeekIds = new Set((retros ?? []).map((r) => r.week_id));
+  const retroWindowStart = new Date(new Date(`${today}T00:00:00Z`).getTime() - 30 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const retrosDue = (weeks ?? []).filter(
+    (w) => w.end_date < today && w.end_date >= retroWindowStart && !retroWeekIds.has(w.id)
+  );
 
   const sessionWeek = new Map<string, string>();
   for (const s of sessions ?? []) if (s.week_id) sessionWeek.set(s.id, s.week_id);
@@ -96,19 +111,41 @@ export default async function DashboardPage({
         description="STPM master planning overview."
       />
 
+      {(retrosDue.length > 0 || (dueLeads ?? []).length > 0) && (
+        <Card className="border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
+          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">Needs attention</h2>
+          <ul className="mt-2 space-y-1 text-sm">
+            {retrosDue.slice(0, 4).map((w) => (
+              <li key={w.id}>
+                <Link href={`/weeks/${w.id}?view=retro`} className="text-amber-800 hover:underline dark:text-amber-300">
+                  Retro missing for {formatDateRange(w.start_date, w.end_date)} · {w.location} →
+                </Link>
+              </li>
+            ))}
+            {(dueLeads ?? []).slice(0, 4).map((l) => (
+              <li key={l.id}>
+                <Link href={`/sales/${l.id}`} className="text-amber-800 hover:underline dark:text-amber-300">
+                  Sales follow-up due: {l.name} →
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
           {year} at a glance
         </h2>
         <div className="flex items-center gap-2 text-sm">
           <Link
-            href={`/?year=${year - 1}`}
+            href={`/dashboard?year=${year - 1}`}
             className="rounded-md border border-neutral-300 px-2 py-1 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
           >
             &larr; {year - 1}
           </Link>
           <Link
-            href={`/?year=${year + 1}`}
+            href={`/dashboard?year=${year + 1}`}
             className="rounded-md border border-neutral-300 px-2 py-1 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
           >
             {year + 1} &rarr;

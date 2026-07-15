@@ -13,9 +13,13 @@ import {
   stageBadgeClass,
   stageLabel,
   type CountryStat,
+  type SalesStage,
   type SenderStat,
   type Suggestion,
 } from "@/lib/sales";
+import { PipelineBoard } from "@/components/pipeline-board";
+import { AiPanel } from "@/components/ai-panel";
+import { askSalesAiAction, setLeadStageAction } from "./actions";
 
 const FOLLOW_UP_DAYS = 14;
 
@@ -45,7 +49,7 @@ function SuggestionCard({ s }: { s: Suggestion }) {
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ch?: string; q?: string; type?: string; stage?: string }>;
+  searchParams: Promise<{ ch?: string; q?: string; type?: string; stage?: string; view?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -183,7 +187,7 @@ export default async function SalesPage({
         ))}
       </div>
 
-      {/* AI-suggested sales moves */}
+      {/* Rule-based suggested sales moves */}
       <div>
         <h2 className="mb-3 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
           Suggested sales moves
@@ -194,6 +198,19 @@ export default async function SalesPage({
           ))}
         </div>
       </div>
+
+      {/* AI sales assistant */}
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          ✨ AI sales assistant
+        </h2>
+        <AiPanel
+          action={askSalesAiAction.bind(null, channel)}
+          buttonLabel="Suggest next moves"
+          placeholder="Optional: ask anything — e.g. how do I grow the German market?"
+          intro="Reads the live sales digest (aggregates only — never personal data) and suggests concrete moves. Provider is set under Admin → AI Settings."
+        />
+      </Card>
 
       {channel === "outie" ? (
         <>
@@ -299,13 +316,43 @@ export default async function SalesPage({
             ))}
           </div>
 
-          <LeadsSection
-            channel={channel}
-            leads={filteredLeads}
-            q={sp.q ?? ""}
-            typeFilter={typeFilter}
-            stageFilter={stageFilter}
-          />
+          <div className="flex gap-1">
+            {(["board", "list"] as const).map((v) => (
+              <Link
+                key={v}
+                href={`/sales?ch=innie&view=${v}`}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize ${
+                  (sp.view === "list" ? "list" : "board") === v
+                    ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                    : "border border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                }`}
+              >
+                {v === "board" ? "Pipeline board" : "List"}
+              </Link>
+            ))}
+          </div>
+
+          {sp.view === "list" ? (
+            <LeadsSection
+              channel={channel}
+              leads={filteredLeads}
+              q={sp.q ?? ""}
+              typeFilter={typeFilter}
+              stageFilter={stageFilter}
+            />
+          ) : (
+            <PipelineBoard
+              leads={filteredLeads.map((l) => ({
+                id: l.id,
+                name: l.name,
+                org_type: l.org_type,
+                municipality: l.municipality,
+                email: l.email,
+                stage: l.stage as SalesStage,
+              }))}
+              onMove={setLeadStageAction}
+            />
+          )}
         </>
       )}
     </>

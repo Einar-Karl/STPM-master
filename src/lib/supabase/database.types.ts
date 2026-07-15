@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           contact_person: string | null
@@ -919,6 +937,51 @@ export type Database = {
           specializations?: string | null
         }
         Relationships: []
+      }
+      week_retros: {
+        Row: {
+          could_improve: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          rating: number | null
+          week_id: string
+          went_well: string | null
+        }
+        Insert: {
+          could_improve?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          rating?: number | null
+          week_id: string
+          went_well?: string | null
+        }
+        Update: {
+          could_improve?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          rating?: number | null
+          week_id?: string
+          went_well?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "week_retros_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "week_retros_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "course_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

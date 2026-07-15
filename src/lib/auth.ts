@@ -43,7 +43,7 @@ export async function requireStaff(): Promise<{ profile: Tables<"profiles"> }> {
 
 export async function requireAdmin(): Promise<{ profile: Tables<"profiles"> }> {
   const { profile } = await requireStaff();
-  if (profile.role !== "admin" && !AUTH_DISABLED) redirect("/");
+  if (profile.role !== "admin" && !AUTH_DISABLED) redirect("/dashboard");
   return { profile };
 }
 

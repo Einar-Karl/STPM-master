@@ -11,9 +11,13 @@ Vercel.
 
 - `supabase/migrations/` — versioned SQL schema (tables, RLS policies). Applied
   directly to the Supabase project; keep this in sync if you change the schema.
-- `src/app/login` — staff sign-in.
+- `src/app/page.tsx` — the public marketing landing page at `/` (no login).
+- `src/app/login` — staff sign-in (the app itself lives at `/dashboard`).
 - `src/app/(app)` — everything behind login: dashboard, clients, courses,
-  course bookings, hotels, hotel bookings, resources, sales, staff admin.
+  course bookings, hotels, hotel bookings, resources, sales, retros,
+  AI settings, staff admin.
+- `src/lib/ai.ts` — provider-agnostic AI adapter (OpenAI-compatible); powers
+  the sales assistant, the STPM chatbot and retro summaries.
 - `src/lib/supabase` — browser/server Supabase clients and generated DB types.
 - `src/proxy.ts` — session-refresh + auth-gate (Next.js 16 renamed
   `middleware.ts` to `proxy.ts`; same purpose).
@@ -139,6 +143,35 @@ dashboard timeline bars show the number of **registered participants** per week.
   convention — confirm the exact address before sending.
 
 The lead list lives in `sales_leads` / `sales_activities` (migration `0008`).
+
+### AI features
+
+Three assistants share one provider-agnostic adapter (`src/lib/ai.ts`), so the
+model is a settings change, not a code change:
+
+- **AI sales assistant** (on Sales) — suggests next moves from the live sales
+  digest; a per-lead "next move" panel sits on each lead page.
+- **STPM chatbot** (✨ button, bottom-right on every page) — read-only Q&A over
+  live data (weeks, bookings, pipeline) with deep links to the right page.
+  It cannot change data.
+- **Retro summarizer** (on Retros) — turns retro entries into improvement
+  suggestions.
+
+Configure under **Admin → AI Settings**: pick a provider (Gemini free tier,
+Groq, OpenRouter, any custom OpenAI-compatible URL, or the built-in mock),
+paste an API key, test the connection. Without a key everything still works in
+**mock mode**. Privacy: only aggregates and organisation-level data are sent to
+the provider — never participant names, emails or phones. The key stored in
+`app_settings` is readable by signed-in staff; use the `AI_API_KEY` env var
+instead if you want it out of the database.
+
+### Course-week retros
+
+After a week ends, staff fill in its **Retro** tab (what went well / what could
+be better / rating — one entry per person). The **Retros** page collects every
+entry, flags recently-finished weeks that are still missing one (also surfaced
+on the dashboard under "Needs attention"), and can AI-summarize all entries
+into concrete changes to the courses and setup.
 
 ## Deploying to Vercel
 

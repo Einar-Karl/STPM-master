@@ -35,12 +35,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/signup");
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
+  // The marketing landing page is public; everything else needs a session.
+  const isPublicRoute = pathname === "/" || isAuthRoute;
   const authDisabled = process.env.DISABLE_AUTH === "true";
 
-  if (!user && !isAuthRoute && !authDisabled) {
+  if (!user && !isPublicRoute && !authDisabled) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -48,7 +49,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
