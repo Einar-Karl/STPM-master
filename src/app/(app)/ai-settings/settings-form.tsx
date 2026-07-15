@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Field, Input, Select } from "@/components/ui";
-import { PROVIDERS, type AiProvider } from "@/lib/ai-providers";
+import { PROVIDERS, providerMeta, type AiProvider } from "@/lib/ai-providers";
 
-const KNOWN_DEFAULTS = new Set(PROVIDERS.map((p) => p.defaultModel).filter(Boolean));
+const CUSTOM_CHOICE = "__custom__";
+
+function initialChoice(provider: AiProvider, model: string): string {
+  const models = providerMeta(provider).models;
+  return models.some((m) => m.id === model) ? model : CUSTOM_CHOICE;
+}
 
 export function AiSettingsForm({
   action,
@@ -22,18 +27,27 @@ export function AiSettingsForm({
   enabled: boolean;
 }) {
   const [provider, setProvider] = useState<AiProvider>(initialProvider);
-  const [model, setModel] = useState(initialModel);
+  const [choice, setChoice] = useState<string>(() => initialChoice(initialProvider, initialModel));
+  const [customModel, setCustomModel] = useState<string>(() =>
+    initialChoice(initialProvider, initialModel) === CUSTOM_CHOICE ? initialModel : ""
+  );
+
+  const models = useMemo(() => providerMeta(provider).models, [provider]);
+  const finalModel = choice === CUSTOM_CHOICE ? customModel : choice;
 
   function onProviderChange(next: AiProvider) {
     setProvider(next);
-    // Only auto-fill the model when it's empty or still holds another
-    // provider's default — never clobber a value someone typed on purpose.
-    setModel((current) => {
-      if (!current.trim() || KNOWN_DEFAULTS.has(current)) {
-        return PROVIDERS.find((p) => p.value === next)?.defaultModel ?? current;
-      }
-      return current;
-    });
+    const nextModels = providerMeta(next).models;
+    if (nextModels.length === 0) {
+      // Custom / mock: always free-text (mock's value doesn't matter).
+      setChoice(CUSTOM_CHOICE);
+      setCustomModel(next === "mock" ? "mock" : "");
+    } else {
+      // A model id is provider-specific, so switching providers always
+      // resets to that provider's recommended default.
+      setChoice(nextModels[0].id);
+      setCustomModel("");
+    }
   }
 
   return (
@@ -49,18 +63,48 @@ export function AiSettingsForm({
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Model" name="model">
-          <Input
-            name="model"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="e.g. gemini-3.5-flash"
-          />
+        <Field label="Model" name="model_choice">
+          {models.length > 0 ? (
+            <>
+              <Select value={choice} onChange={(e) => setChoice(e.target.value)}>
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+                <option value={CUSTOM_CHOICE}>Other — type a model ID manually…</option>
+              </Select>
+              {choice === CUSTOM_CHOICE && (
+                <Input
+                  className="mt-2"
+                  value={customModel}
+                  onChange={(e) => setCustomModel(e.target.value)}
+                  placeholder="Exact model ID from the provider's docs"
+                  aria-label="Custom model ID"
+                />
+              )}
+            </>
+          ) : provider === "mock" ? (
+            <p className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
+              No model needed in mock mode.
+            </p>
+          ) : (
+            <Input
+              value={customModel}
+              onChange={(e) => setCustomModel(e.target.value)}
+              placeholder="e.g. llama3.1, gpt-4o-mini, mistral-large…"
+            />
+          )}
+          <input type="hidden" name="model" value={finalModel} />
         </Field>
         <Field label="Base URL (custom provider only)" name="base_url">
           <Input name="base_url" defaultValue={provider === "custom" ? initialBaseUrl : ""} placeholder="https://…/v1" />
         </Field>
       </div>
+      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+        Free-tier model lineups change often — if a request 404s, pick a different one from the list
+        or type the current model ID from the provider’s docs.
+      </p>
 
       <Field label="API key" name="api_key">
         <Input
