@@ -188,6 +188,41 @@ export type Database = {
           },
         ]
       }
+      course_session_days: {
+        Row: {
+          created_at: string
+          day_date: string
+          id: string
+          notes: string | null
+          session_id: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          day_date: string
+          id?: string
+          notes?: string | null
+          session_id: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          day_date?: string
+          id?: string
+          notes?: string | null
+          session_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_session_days_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "course_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_sessions: {
         Row: {
           capacity: number | null
@@ -200,6 +235,7 @@ export type Database = {
           lead_teacher_id: string | null
           location: string | null
           notes: string | null
+          registration_key: string | null
           start_date: string
           status: Database["public"]["Enums"]["booking_status"]
           support_teacher_id: string | null
@@ -216,6 +252,7 @@ export type Database = {
           lead_teacher_id?: string | null
           location?: string | null
           notes?: string | null
+          registration_key?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["booking_status"]
           support_teacher_id?: string | null
@@ -232,6 +269,7 @@ export type Database = {
           lead_teacher_id?: string | null
           location?: string | null
           notes?: string | null
+          registration_key?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["booking_status"]
           support_teacher_id?: string | null
@@ -315,30 +353,36 @@ export type Database = {
           channel: Database["public"]["Enums"]["channel"]
           created_at: string
           end_date: string
+          hotel_questionnaire_url: string | null
           id: string
           label: string
           location: string
           notes: string | null
+          signup_sheet_url: string | null
           start_date: string
         }
         Insert: {
           channel?: Database["public"]["Enums"]["channel"]
           created_at?: string
           end_date: string
+          hotel_questionnaire_url?: string | null
           id?: string
           label: string
           location: string
           notes?: string | null
+          signup_sheet_url?: string | null
           start_date: string
         }
         Update: {
           channel?: Database["public"]["Enums"]["channel"]
           created_at?: string
           end_date?: string
+          hotel_questionnaire_url?: string | null
           id?: string
           label?: string
           location?: string
           notes?: string | null
+          signup_sheet_url?: string | null
           start_date?: string
         }
         Relationships: []
@@ -538,6 +582,75 @@ export type Database = {
           },
         ]
       }
+      innie_trips: {
+        Row: {
+          created_at: string
+          depart_date: string | null
+          destination: string
+          flight_cost: number
+          free_seats: number
+          hotel_cost: number
+          id: string
+          label: string
+          margin: number
+          note: string | null
+          paid_total: number | null
+          pax: number
+          price_avg: number | null
+          price_max: number | null
+          price_min: number | null
+          revenue_total: number
+          school: string | null
+          service_fee: number
+          trip_no: number | null
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          depart_date?: string | null
+          destination: string
+          flight_cost?: number
+          free_seats?: number
+          hotel_cost?: number
+          id?: string
+          label: string
+          margin?: number
+          note?: string | null
+          paid_total?: number | null
+          pax?: number
+          price_avg?: number | null
+          price_max?: number | null
+          price_min?: number | null
+          revenue_total?: number
+          school?: string | null
+          service_fee?: number
+          trip_no?: number | null
+          year: number
+        }
+        Update: {
+          created_at?: string
+          depart_date?: string | null
+          destination?: string
+          flight_cost?: number
+          free_seats?: number
+          hotel_cost?: number
+          id?: string
+          label?: string
+          margin?: number
+          note?: string | null
+          paid_total?: number | null
+          pax?: number
+          price_avg?: number | null
+          price_max?: number | null
+          price_min?: number | null
+          revenue_total?: number
+          school?: string | null
+          service_fee?: number
+          trip_no?: number | null
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -561,6 +674,53 @@ export type Database = {
           role?: Database["public"]["Enums"]["staff_role"]
         }
         Relationships: []
+      }
+      registration_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          email: string | null
+          id: string
+          participant_name: string | null
+          raw: Json | null
+          registration_key: string | null
+          session_id: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          email?: string | null
+          id?: string
+          participant_name?: string | null
+          raw?: Json | null
+          registration_key?: string | null
+          session_id?: string | null
+          source?: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          email?: string | null
+          id?: string
+          participant_name?: string | null
+          raw?: Json | null
+          registration_key?: string | null
+          session_id?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "course_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resource_bookings: {
         Row: {

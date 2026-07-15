@@ -66,6 +66,9 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
     {
       title: "Operations",
       items: [
+        { href: "/registrations", label: "Registrations", icon: "clipboard" },
+        { href: "/tours", label: "Tours", icon: "boxes" },
+        { href: "/innies", label: "Innies · Pricing", icon: "ticket" },
         { href: "/hotels", label: "Hotels", icon: "bed" },
         { href: "/hotel-bookings", label: "Hotel Bookings", icon: "bed" },
         { href: "/resources", label: "Resources", icon: "boxes" },

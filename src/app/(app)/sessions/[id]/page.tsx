@@ -3,8 +3,11 @@ import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
+  Button,
   Card,
   EmptyState,
+  Field,
+  Input,
   PageHeader,
   StatusBadge,
   Table,
@@ -12,28 +15,46 @@ import {
   Th,
 } from "@/components/ui";
 import { channelLabel, formatDateRange, paymentBadgeClass } from "@/lib/planner";
+import { SessionSchedule } from "./session-schedule";
+import { SheetImport } from "./sheet-import";
+import { updateRegistrationKeyAction } from "./actions";
 
-export default async function SessionRosterPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SessionRosterPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
+}) {
   await requireStaff();
   const { id } = await params;
+  const { view } = await searchParams;
+  const activeView = view === "schedule" ? "schedule" : "roster";
   const supabase = await createClient();
 
   const { data: session } = await supabase
     .from("course_sessions")
     .select(
-      "id, week_id, courses(name), course_weeks(start_date, end_date, location, channel), lead:lead_teacher_id(name), support:support_teacher_id(name)"
+      "id, week_id, registration_key, courses(name), course_weeks(start_date, end_date, location, channel, signup_sheet_url), lead:lead_teacher_id(name), support:support_teacher_id(name)"
     )
     .eq("id", id)
     .single();
   if (!session) notFound();
 
-  const { data: participants } = await supabase
-    .from("course_bookings")
-    .select(
-      "id, participant_name, nationality, school, coordinator, payment_status, tour_booked, status, group_label"
-    )
-    .eq("session_id", id)
-    .order("participant_name", { ascending: true });
+  const [{ data: participants }, { data: sessionDays }] = await Promise.all([
+    supabase
+      .from("course_bookings")
+      .select(
+        "id, participant_name, nationality, school, coordinator, payment_status, tour_booked, status, group_label"
+      )
+      .eq("session_id", id)
+      .order("participant_name", { ascending: true }),
+    supabase
+      .from("course_session_days")
+      .select("id, day_date, title, notes")
+      .eq("session_id", id)
+      .order("day_date", { ascending: true }),
+  ]);
 
   const course = (session.courses as unknown as { name: string } | null)?.name ?? "Course";
   const week = session.course_weeks as unknown as {
@@ -41,6 +62,7 @@ export default async function SessionRosterPage({ params }: { params: Promise<{ 
     end_date: string;
     location: string;
     channel: "innie" | "outie";
+    signup_sheet_url: string | null;
   } | null;
   const lead = (session.lead as unknown as { name: string } | null)?.name;
   const support = (session.support as unknown as { name: string } | null)?.name;
@@ -81,50 +103,119 @@ export default async function SessionRosterPage({ params }: { params: Promise<{ 
         </Card>
       </div>
 
-      {participants?.length ? (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Participant</Th>
-              <Th>Nationality</Th>
-              <Th>School</Th>
-              <Th>Coordinator</Th>
-              <Th>Payment</Th>
-              <Th>Tour</Th>
-              <Th>Status</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {participants.map((p) => (
-              <tr key={p.id}>
-                <Td className="font-medium">{p.participant_name}</Td>
-                <Td>{p.nationality ?? "—"}</Td>
-                <Td className="max-w-xs truncate" >{p.school ?? "—"}</Td>
-                <Td>{p.coordinator ?? "—"}</Td>
-                <Td>
-                  {p.payment_status ? (
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${paymentBadgeClass(
-                        p.payment_status
-                      )}`}
-                    >
-                      {p.payment_status}
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </Td>
-                <Td>{p.tour_booked === true ? "Yes" : p.tour_booked === false ? "No" : "—"}</Td>
-                <Td>
-                  <StatusBadge status={p.status} />
-                </Td>
+      <div className="flex gap-2">
+        {(
+          [
+            { key: "roster", label: "Roster" },
+            { key: "schedule", label: "Daily schedule" },
+          ] as const
+        ).map((t) => (
+          <Link
+            key={t.key}
+            href={`/sessions/${id}?view=${t.key}`}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+              activeView === t.key
+                ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </div>
+
+      {activeView === "roster" ? (
+        <div className="space-y-4">
+          <SheetImport sessionId={id} defaultUrl={week?.signup_sheet_url ?? null} />
+          <Card>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="min-w-[16rem] flex-1">
+                <Field label="Website registration key" name="registration_key">
+                  <form action={updateRegistrationKeyAction} className="flex gap-2">
+                    <input type="hidden" name="session_id" value={id} />
+                    <Input
+                      name="registration_key"
+                      defaultValue={session.registration_key ?? ""}
+                      placeholder="e.g. ai-education-jul12"
+                    />
+                    <Button type="submit" variant="ghost">
+                      Save
+                    </Button>
+                  </form>
+                </Field>
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  Registrations from Kajabi that carry this key land on this roster automatically. See{" "}
+                  <Link href="/registrations" className="underline">
+                    Registrations
+                  </Link>{" "}
+                  for the setup.
+                </p>
+              </div>
+            </div>
+          </Card>
+          {participants?.length ? (
+          <Table>
+            <thead>
+              <tr>
+                <Th>Participant</Th>
+                <Th>Nationality</Th>
+                <Th>School</Th>
+                <Th>Coordinator</Th>
+                <Th>Payment</Th>
+                <Th>Tour</Th>
+                <Th>Status</Th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            </thead>
+            <tbody>
+              {participants.map((p) => (
+                <tr key={p.id}>
+                  <Td className="font-medium">{p.participant_name}</Td>
+                  <Td>{p.nationality ?? "—"}</Td>
+                  <Td className="max-w-xs truncate">{p.school ?? "—"}</Td>
+                  <Td>{p.coordinator ?? "—"}</Td>
+                  <Td>
+                    {p.payment_status ? (
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${paymentBadgeClass(
+                          p.payment_status
+                        )}`}
+                      >
+                        {p.payment_status}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </Td>
+                  <Td>{p.tour_booked === true ? "Yes" : p.tour_booked === false ? "No" : "—"}</Td>
+                  <Td>
+                    <StatusBadge status={p.status} />
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+          ) : (
+            <Card>
+              <EmptyState>No participants booked on this course yet.</EmptyState>
+            </Card>
+          )}
+        </div>
+      ) : sessionDays?.length ? (
+        <SessionSchedule
+          sessionId={id}
+          courseName={course}
+          meta={
+            week
+              ? `${formatDateRange(week.start_date, week.end_date)} · ${week.location} · ${
+                  lead ? `Led by ${lead}` : "Lead unassigned"
+                } · ${active.length} participants`
+              : `${active.length} participants`
+          }
+          days={sessionDays}
+        />
       ) : (
         <Card>
-          <EmptyState>No participants booked on this course yet.</EmptyState>
+          <EmptyState>No schedule days yet for this course.</EmptyState>
         </Card>
       )}
     </>

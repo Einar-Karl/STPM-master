@@ -18,9 +18,7 @@ export default async function WeeksPage({
       ? channel
       : channel === "all"
         ? "all"
-        : defaultFilter === "both"
-          ? "all"
-          : defaultFilter;
+        : defaultFilter;
 
   const supabase = await createClient();
 
@@ -68,20 +66,28 @@ export default async function WeeksPage({
         description="Plan each course week: assign the right teachers and confirm the location. Two channels — Outies (foreign teachers coming here) and Innies (Icelandic teachers travelling abroad)."
       />
 
-      <div className="flex gap-2">
-        {tabs.map((t) => (
-          <Link
-            key={t.key}
-            href={`/weeks?channel=${t.key}`}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-              active === t.key
-                ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-            }`}
-          >
-            {t.label}
-          </Link>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-2">
+          {tabs.map((t) => (
+            <Link
+              key={t.key}
+              href={`/weeks?channel=${t.key}`}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                active === t.key
+                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                  : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              }`}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </div>
+        <Link
+          href="/weeks/new"
+          className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+        >
+          + New course week
+        </Link>
       </div>
 
       {weeks?.length ? (

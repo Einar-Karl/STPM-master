@@ -66,6 +66,25 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <input type="hidden" name="lead_id" value={lead.id} />
           <Button type="submit">Mark contacted today</Button>
         </form>
+        {lead.stage !== "lost" && (
+          <Link
+            href={{
+              pathname: "/weeks/new",
+              query: {
+                from_lead: lead.id,
+                lead_name: lead.name,
+                channel: lead.channel,
+                label: lead.name,
+                notes: `From sales lead: ${lead.name}${lead.municipality ? ` (${lead.municipality})` : ""}${
+                  lead.contact_person ? ` · contact ${lead.contact_person}` : ""
+                }`,
+              },
+            }}
+            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            Convert to course week →
+          </Link>
+        )}
         {!lead.email && (
           <a
             href={findEmailUrl(lead.name, lead.municipality)}
