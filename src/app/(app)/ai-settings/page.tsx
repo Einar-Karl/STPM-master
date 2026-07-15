@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/lib/auth";
-import { Button, Card, ErrorBanner, Field, Input, PageHeader, Select } from "@/components/ui";
+import { Button, Card, ErrorBanner, PageHeader } from "@/components/ui";
 import { getAiConfig, PROVIDERS } from "@/lib/ai";
 import { saveAiSettingsAction, testAiAction } from "./actions";
+import { AiSettingsForm } from "./settings-form";
 
 export default async function AiSettingsPage({
   searchParams,
@@ -32,52 +33,14 @@ export default async function AiSettingsPage({
       {sp.test === "fail" && <ErrorBanner message={`Connection failed: ${sp.msg}`} />}
 
       <Card>
-        <form action={saveAiSettingsAction} className="space-y-4">
-          <Field label="Provider" name="provider">
-            <Select name="provider" defaultValue={config.provider}>
-              {PROVIDERS.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Model" name="model">
-              <Input
-                name="model"
-                defaultValue={config.model}
-                placeholder="e.g. gemini-2.5-flash"
-              />
-            </Field>
-            <Field label="Base URL (custom provider only)" name="base_url">
-              <Input
-                name="base_url"
-                defaultValue={config.provider === "custom" ? config.baseUrl : ""}
-                placeholder="https://…/v1"
-              />
-            </Field>
-          </div>
-
-          <Field label="API key" name="api_key">
-            <Input
-              name="api_key"
-              type="password"
-              autoComplete="off"
-              placeholder={config.apiKey ? "•••••••• (a key is saved — type to replace)" : "Paste the provider API key"}
-            />
-          </Field>
-          <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-            <input type="checkbox" name="clear_key" /> Remove the saved key
-          </label>
-
-          <label className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            <input type="checkbox" name="enabled" defaultChecked={config.enabled} /> AI features enabled
-          </label>
-
-          <Button type="submit">Save settings</Button>
-        </form>
+        <AiSettingsForm
+          action={saveAiSettingsAction}
+          initialProvider={config.provider}
+          initialModel={config.model}
+          initialBaseUrl={config.baseUrl}
+          hasStoredKey={!!config.apiKey}
+          enabled={config.enabled}
+        />
       </Card>
 
       <Card>
