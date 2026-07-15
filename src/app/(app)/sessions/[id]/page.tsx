@@ -14,7 +14,7 @@ import {
   Td,
   Th,
 } from "@/components/ui";
-import { channelLabel, formatDateRange, paymentBadgeClass } from "@/lib/planner";
+import { channelLabel, formatDateRange, hasSpecialNeeds, paymentBadgeClass } from "@/lib/planner";
 import { SessionSchedule } from "./session-schedule";
 import { SheetImport } from "./sheet-import";
 import { updateRegistrationKeyAction } from "./actions";
@@ -45,7 +45,7 @@ export default async function SessionRosterPage({
     supabase
       .from("course_bookings")
       .select(
-        "id, participant_name, nationality, school, coordinator, payment_status, tour_booked, status, group_label"
+        "id, participant_name, nationality, school, coordinator, payment_status, tour_booked, status, group_label, special_needs"
       )
       .eq("session_id", id)
       .order("participant_name", { ascending: true }),
@@ -68,6 +68,7 @@ export default async function SessionRosterPage({
   const support = (session.support as unknown as { name: string } | null)?.name;
 
   const active = (participants ?? []).filter((p) => p.status !== "cancelled");
+  const flagged = active.filter((p) => hasSpecialNeeds(p.special_needs));
 
   return (
     <>
@@ -102,6 +103,25 @@ export default async function SessionRosterPage({
           <p className="mt-1 text-lg font-medium text-neutral-900 dark:text-neutral-100">{support ?? "—"}</p>
         </Card>
       </div>
+
+      {flagged.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
+          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            ⚠ {flagged.length} participant{flagged.length > 1 ? "s" : ""} with allergies, accessibility or other special needs
+          </h2>
+          <ul className="mt-2 space-y-1.5">
+            {flagged.map((p) => (
+              <li key={p.id} className="text-sm text-amber-900 dark:text-amber-200">
+                <span className="font-semibold">{p.participant_name}:</span>{" "}
+                <span className="text-amber-800 dark:text-amber-300">{p.special_needs}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+            Check venue access (wheelchair), meals and activities against this list before the week starts.
+          </p>
+        </Card>
+      )}
 
       <div className="flex gap-2">
         {(
@@ -158,6 +178,7 @@ export default async function SessionRosterPage({
             <thead>
               <tr>
                 <Th>Participant</Th>
+                <Th>Needs</Th>
                 <Th>Nationality</Th>
                 <Th>School</Th>
                 <Th>Coordinator</Th>
@@ -168,8 +189,20 @@ export default async function SessionRosterPage({
             </thead>
             <tbody>
               {participants.map((p) => (
-                <tr key={p.id}>
+                <tr key={p.id} className={hasSpecialNeeds(p.special_needs) ? "bg-amber-50 dark:bg-amber-950/30" : ""}>
                   <Td className="font-medium">{p.participant_name}</Td>
+                  <Td>
+                    {hasSpecialNeeds(p.special_needs) ? (
+                      <span
+                        title={p.special_needs ?? ""}
+                        className="inline-block max-w-40 truncate rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                      >
+                        ⚠ {p.special_needs}
+                      </span>
+                    ) : (
+                      <span className="text-neutral-300 dark:text-neutral-600">—</span>
+                    )}
+                  </Td>
                   <Td>{p.nationality ?? "—"}</Td>
                   <Td className="max-w-xs truncate">{p.school ?? "—"}</Td>
                   <Td>{p.coordinator ?? "—"}</Td>

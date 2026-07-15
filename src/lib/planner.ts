@@ -26,6 +26,15 @@ export function paymentBadgeClass(status: string | null): string {
   }
 }
 
+// True when a participant's special_needs text actually says something —
+// allergy, wheelchair access, diet, etc. Values like "NO", "none", "n/a",
+// "-" or "Nei" mean there's nothing to flag.
+export function hasSpecialNeeds(value: string | null | undefined): boolean {
+  const v = (value ?? "").trim();
+  if (!v) return false;
+  return !/^(no|none|n\/?a|nei|nej|nope|nothing|-+|no\.)$/i.test(v);
+}
+
 export function formatDateRange(start: string, end: string): string {
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
