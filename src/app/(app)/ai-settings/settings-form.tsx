@@ -54,7 +54,7 @@ export function AiSettingsForm({
             name="model"
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            placeholder="e.g. gemini-2.5-flash"
+            placeholder="e.g. gemini-3.5-flash"
           />
         </Field>
         <Field label="Base URL (custom provider only)" name="base_url">

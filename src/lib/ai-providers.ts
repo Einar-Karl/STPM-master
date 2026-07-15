@@ -8,7 +8,7 @@ export const PROVIDERS: { value: AiProvider; label: string; baseUrl: string; def
     value: "gemini",
     label: "Google Gemini (free tier)",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    defaultModel: "gemini-2.5-flash",
+    defaultModel: "gemini-3.5-flash",
     keyHint: "Create a free key at aistudio.google.com → Get API key",
   },
   {
