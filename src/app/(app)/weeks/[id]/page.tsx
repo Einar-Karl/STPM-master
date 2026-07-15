@@ -15,7 +15,8 @@ import {
 } from "@/components/ui";
 import { channelLabel, formatDateRange } from "@/lib/planner";
 import { WeekItinerary } from "@/components/week-itinerary";
-import { assignTeachersAction, updateDayPlanAction, updateWeekLocationAction } from "./actions";
+import { Field, Textarea } from "@/components/ui";
+import { addRetroAction, assignTeachersAction, updateDayPlanAction, updateWeekLocationAction } from "./actions";
 
 export default async function WeekDetailPage({
   params,
@@ -27,13 +28,13 @@ export default async function WeekDetailPage({
   await requireStaff();
   const { id } = await params;
   const { view } = await searchParams;
-  const activeView = view === "days" ? "days" : "week";
+  const activeView = view === "days" ? "days" : view === "retro" ? "retro" : "week";
   const supabase = await createClient();
 
   const { data: week } = await supabase.from("course_weeks").select("*").eq("id", id).single();
   if (!week) notFound();
 
-  const [{ data: sessions }, { data: teachers }, { data: bookings }, { data: days }] = await Promise.all([
+  const [{ data: sessions }, { data: teachers }, { data: bookings }, { data: days }, { data: retros }] = await Promise.all([
     supabase
       .from("course_sessions")
       .select(
@@ -43,6 +44,7 @@ export default async function WeekDetailPage({
     supabase.from("teachers").select("id, name, code, active").order("sort_order", { ascending: true }),
     supabase.from("course_bookings").select("session_id, status"),
     supabase.from("course_week_days").select("*").eq("week_id", id).order("day_date", { ascending: true }),
+    supabase.from("week_retros").select("*").eq("week_id", id).order("created_at", { ascending: false }),
   ]);
 
   const activeTeachers = (teachers ?? []).filter((t) => t.active);
@@ -117,6 +119,16 @@ export default async function WeekDetailPage({
           }`}
         >
           Day by day
+        </Link>
+        <Link
+          href={`/weeks/${week.id}?view=retro`}
+          className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+            activeView === "retro"
+              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+              : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          }`}
+        >
+          Retro {retros?.length ? `(${retros.length})` : ""}
         </Link>
       </div>
 
@@ -195,23 +207,96 @@ export default async function WeekDetailPage({
             <EmptyState>No course sessions scheduled for this week.</EmptyState>
           </Card>
         )
-      ) : days?.length ? (
-        <WeekItinerary
-          week={{
-            id: week.id,
-            start_date: week.start_date,
-            end_date: week.end_date,
-            location: week.location,
-            channel: week.channel,
-          }}
-          days={days.map((d) => ({ id: d.id, day_date: d.day_date, title: d.title, notes: d.notes }))}
-          courses={itineraryCourses}
-          updateDayPlanAction={updateDayPlanAction}
-        />
+      ) : activeView === "days" ? (
+        days?.length ? (
+          <WeekItinerary
+            week={{
+              id: week.id,
+              start_date: week.start_date,
+              end_date: week.end_date,
+              location: week.location,
+              channel: week.channel,
+            }}
+            days={days.map((d) => ({ id: d.id, day_date: d.day_date, title: d.title, notes: d.notes }))}
+            courses={itineraryCourses}
+            updateDayPlanAction={updateDayPlanAction}
+          />
+        ) : (
+          <Card>
+            <EmptyState>No day-by-day plan yet.</EmptyState>
+          </Card>
+        )
       ) : (
-        <Card>
-          <EmptyState>No day-by-day plan yet.</EmptyState>
-        </Card>
+        <div className="space-y-4">
+          <Card>
+            <h2 className="mb-1 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              How did this week go?
+            </h2>
+            <p className="mb-4 text-xs text-neutral-500 dark:text-neutral-400">
+              Everyone who worked the week can add their own entry. Entries feed the{" "}
+              <Link href="/retros" className="underline">Retros</Link> page, where the AI turns them
+              into improvement suggestions.
+            </p>
+            <form action={addRetroAction} className="space-y-3">
+              <input type="hidden" name="week_id" value={week.id} />
+              <Field label="What went well?" name="went_well">
+                <Textarea name="went_well" rows={3} placeholder="Sessions, tours, group energy, logistics…" />
+              </Field>
+              <Field label="What could have gone better?" name="could_improve">
+                <Textarea name="could_improve" rows={3} placeholder="Anything to fix before the next week runs." />
+              </Field>
+              <div className="max-w-48">
+                <Field label="Overall rating" name="rating">
+                  <Select name="rating" defaultValue="">
+                    <option value="">— no rating —</option>
+                    {[5, 4, 3, 2, 1].map((n) => (
+                      <option key={n} value={n}>
+                        {"★".repeat(n)}{"☆".repeat(5 - n)} ({n}/5)
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+              <Button type="submit">Save retro</Button>
+            </form>
+          </Card>
+
+          {retros?.length ? (
+            <div className="space-y-3">
+              {retros.map((r) => (
+                <Card key={r.id}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs text-neutral-400">
+                      {new Date(r.created_at).toLocaleDateString("en-GB")}
+                    </p>
+                    {r.rating && (
+                      <span className="text-sm text-amber-500">
+                        {"★".repeat(r.rating)}
+                        <span className="text-neutral-300 dark:text-neutral-600">{"★".repeat(5 - r.rating)}</span>
+                      </span>
+                    )}
+                  </div>
+                  {r.went_well && (
+                    <p className="text-sm text-neutral-700 dark:text-neutral-300">
+                      <span className="font-medium text-emerald-700 dark:text-emerald-400">Went well:</span>{" "}
+                      {r.went_well}
+                    </p>
+                  )}
+                  {r.could_improve && (
+                    <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">
+                      <span className="font-medium text-amber-700 dark:text-amber-400">Could improve:</span>{" "}
+                      {r.could_improve}
+                    </p>
+                  )}
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <EmptyState>No retro entries for this week yet.</EmptyState>
+            </Card>
+          )}
+        </div>
       )}
     </>
   );

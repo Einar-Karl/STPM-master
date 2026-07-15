@@ -7,7 +7,7 @@ export default async function PendingApprovalPage() {
   const { profile } = await requireStaff();
 
   // Already approved — nothing to see here.
-  if (profile.role !== "pending") redirect("/");
+  if (profile.role !== "pending") redirect("/dashboard");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 dark:bg-neutral-950">

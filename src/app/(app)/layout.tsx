@@ -4,47 +4,25 @@ import { requireStaff } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { getChannelFilter } from "@/lib/channel-filter";
 import { ChannelFilterToggle } from "@/components/channel-filter-toggle";
-
-const navItems = [
-  { href: "/", label: "Dashboard" },
-  { href: "/weeks", label: "Course Weeks" },
-  { href: "/sales", label: "Sales" },
-  { href: "/teachers", label: "Teachers" },
-  { href: "/courses", label: "Courses" },
-  { href: "/course-bookings", label: "Course Bookings" },
-  { href: "/clients", label: "Clients" },
-  { href: "/hotels", label: "Hotels" },
-  { href: "/hotel-bookings", label: "Hotel Bookings" },
-  { href: "/resources", label: "Resources" },
-];
-
-const adminNavItems = [{ href: "/staff", label: "Staff" }];
+import { AppNav } from "@/components/app-nav";
+import { AssistantWidget } from "@/components/assistant-widget";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await requireStaff();
   if (profile.role === "pending") redirect("/pending-approval");
-  const items = profile.role === "admin" ? [...navItems, ...adminNavItems] : navItems;
   const channelFilter = await getChannelFilter();
 
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
         <div className="border-b border-neutral-200 px-4 py-4 dark:border-neutral-800">
-          <p className="font-semibold text-neutral-900 dark:text-neutral-100">STPM Master</p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">Booking &amp; planning</p>
+          <Link href="/dashboard" className="block">
+            <p className="font-semibold text-neutral-900 dark:text-neutral-100">STPM Master</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">Booking &amp; planning</p>
+          </Link>
         </div>
         <ChannelFilterToggle initial={channelFilter} />
-        <nav className="flex-1 space-y-1 p-3 pt-0">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-md px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <AppNav isAdmin={profile.role === "admin"} />
         <div className="border-t border-neutral-200 p-3 dark:border-neutral-800">
           <p className="truncate px-3 text-xs text-neutral-500 dark:text-neutral-400">
             {profile.full_name} &middot; {profile.role}
@@ -70,6 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </div>
       </main>
+      <AssistantWidget />
     </div>
   );
 }

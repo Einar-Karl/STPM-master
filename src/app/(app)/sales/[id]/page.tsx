@@ -6,7 +6,8 @@ import { Button, Card, EmptyState, Field, Input, PageHeader, Select, Textarea } 
 import { findEmailUrl, orgTypeLabel, SALES_STAGES, stageBadgeClass, stageLabel } from "@/lib/sales";
 import { channelLabel } from "@/lib/planner";
 import { DraftPanel } from "./draft-panel";
-import { addActivityAction, markContactedAction, updateLeadAction } from "../actions";
+import { AiPanel } from "@/components/ai-panel";
+import { addActivityAction, askLeadAiAction, markContactedAction, updateLeadAction } from "../actions";
 
 const KIND_LABEL: Record<string, string> = {
   note: "Note",
@@ -146,6 +147,18 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           />
         </Card>
       </div>
+
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          ✨ AI next move
+        </h2>
+        <AiPanel
+          action={askLeadAiAction.bind(null, lead.id)}
+          buttonLabel="Suggest next move"
+          placeholder="Optional: ask something about this lead…"
+          intro="Looks at this lead's stage and contact history (organisation-level only) and suggests what to do next."
+        />
+      </Card>
 
       <Card>
         <h2 className="mb-3 text-sm font-semibold text-neutral-900 dark:text-neutral-100">Activity log</h2>

@@ -14,7 +14,7 @@ export async function login(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent("Invalid email or password.")}`);
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logout() {
