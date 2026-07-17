@@ -15,6 +15,7 @@ import {
   Th,
 } from "@/components/ui";
 import { channelLabel, formatDateRange, hasSpecialNeeds, paymentBadgeClass } from "@/lib/planner";
+import { PrepChecklist } from "@/components/prep-checklist";
 import { SessionSchedule } from "./session-schedule";
 import { SheetImport } from "./sheet-import";
 import { updateRegistrationKeyAction } from "./actions";
@@ -29,7 +30,7 @@ export default async function SessionRosterPage({
   await requireStaff();
   const { id } = await params;
   const { view } = await searchParams;
-  const activeView = view === "schedule" ? "schedule" : "roster";
+  const activeView = view === "schedule" || view === "checklist" ? view : "roster";
   const supabase = await createClient();
 
   const { data: session } = await supabase
@@ -41,7 +42,7 @@ export default async function SessionRosterPage({
     .single();
   if (!session) notFound();
 
-  const [{ data: participants }, { data: sessionDays }] = await Promise.all([
+  const [{ data: participants }, { data: sessionDays }, { data: prepTasks }] = await Promise.all([
     supabase
       .from("course_bookings")
       .select(
@@ -51,9 +52,15 @@ export default async function SessionRosterPage({
       .order("participant_name", { ascending: true }),
     supabase
       .from("course_session_days")
-      .select("id, day_date, title, notes")
+      .select("id, day_date, title, notes, location")
       .eq("session_id", id)
       .order("day_date", { ascending: true }),
+    supabase
+      .from("prep_tasks")
+      .select("id, label, done")
+      .eq("session_id", id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
   ]);
 
   const course = (session.courses as unknown as { name: string } | null)?.name ?? "Course";
@@ -128,6 +135,12 @@ export default async function SessionRosterPage({
           [
             { key: "roster", label: "Roster" },
             { key: "schedule", label: "Daily schedule" },
+            {
+              key: "checklist",
+              label: prepTasks?.length
+                ? `Prep checklist (${prepTasks.filter((t) => t.done).length}/${prepTasks.length})`
+                : "Prep checklist",
+            },
           ] as const
         ).map((t) => (
           <Link
@@ -233,6 +246,14 @@ export default async function SessionRosterPage({
             </Card>
           )}
         </div>
+      ) : activeView === "checklist" ? (
+        <PrepChecklist
+          role="teacher"
+          sessionId={id}
+          title="Teacher prep checklist"
+          intro="Your action plan for this course: work through it in the weeks before the seminar so nothing is left to the last minute. The planner has their own week-level checklist."
+          tasks={prepTasks ?? []}
+        />
       ) : sessionDays?.length ? (
         <SessionSchedule
           sessionId={id}
@@ -245,6 +266,7 @@ export default async function SessionRosterPage({
               : `${active.length} participants`
           }
           days={sessionDays}
+          weekLocation={week?.location ?? null}
         />
       ) : (
         <Card>

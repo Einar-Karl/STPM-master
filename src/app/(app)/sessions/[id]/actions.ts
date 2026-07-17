@@ -17,6 +17,7 @@ export async function updateSessionDayAction(formData: FormData) {
     .from("course_session_days")
     .update({
       title: emptyToNull(formData.get("title")),
+      location: emptyToNull(formData.get("location")),
       notes: emptyToNull(formData.get("notes")),
     })
     .eq("id", dayId);

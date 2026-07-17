@@ -16,6 +16,8 @@ import {
   Th,
 } from "@/components/ui";
 import { channelLabel, formatDateRange, hasSpecialNeeds } from "@/lib/planner";
+import { PrepChecklist } from "@/components/prep-checklist";
+import { VenueMap } from "@/components/venue-map";
 import { WeekItinerary } from "@/components/week-itinerary";
 import {
   addCourseToWeekAction,
@@ -31,6 +33,7 @@ const VIEWS = [
   { key: "schedule", label: "Schedule grid" },
   { key: "days", label: "Day by day" },
   { key: "rooms", label: "Rooms & hotel" },
+  { key: "checklist", label: "Checklist" },
   { key: "retro", label: "Retro" },
 ] as const;
 
@@ -59,6 +62,7 @@ export default async function WeekDetailPage({
     { data: sessionDays },
     { data: courses },
     { data: retros },
+    { data: prepTasks },
   ] = await Promise.all([
     supabase
       .from("course_sessions")
@@ -83,6 +87,12 @@ export default async function WeekDetailPage({
       .order("day_date", { ascending: true }),
     supabase.from("courses").select("id, name").order("name", { ascending: true }),
     supabase.from("week_retros").select("*").eq("week_id", id).order("created_at", { ascending: false }),
+    supabase
+      .from("prep_tasks")
+      .select("id, label, done")
+      .eq("week_id", id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
   ]);
 
   const activeTeachers = (teachers ?? []).filter((t) => t.active);
@@ -178,6 +188,9 @@ export default async function WeekDetailPage({
             Updates the week and every course session in it.
           </p>
         </form>
+        <div className="mt-3">
+          <VenueMap days={[]} fallbackLocation={week.location} />
+        </div>
       </Card>
 
       <Card>
@@ -239,7 +252,11 @@ export default async function WeekDetailPage({
                 : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
             }`}
           >
-            {v.key === "retro" && retros?.length ? `Retro (${retros.length})` : v.label}
+            {v.key === "retro" && retros?.length
+              ? `Retro (${retros.length})`
+              : v.key === "checklist" && prepTasks?.length
+                ? `Checklist (${prepTasks.filter((t) => t.done).length}/${prepTasks.length})`
+                : v.label}
           </Link>
         ))}
       </div>
@@ -538,6 +555,14 @@ export default async function WeekDetailPage({
             </Card>
           )}
         </div>
+      ) : activeView === "checklist" ? (
+        <PrepChecklist
+          role="planner"
+          weekId={week.id}
+          title="Planner checklist — everything ready for this week"
+          intro="The week-level action plan: venue, teachers, hotels, transfers, catering and communication. Each teacher also has their own prep checklist on their course page."
+          tasks={prepTasks ?? []}
+        />
       ) : (
         <div className="space-y-4">
           <Card>
