@@ -41,12 +41,14 @@ export function SessionSchedule({
   days,
   meta,
   weekLocation = null,
+  knownLocations = [],
 }: {
   sessionId: string;
   courseName: string;
   days: SessionDay[];
   meta: string;
   weekLocation?: string | null;
+  knownLocations?: string[];
 }) {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [copied, setCopied] = useState(false);
@@ -149,6 +151,16 @@ export function SessionSchedule({
 
       {mode === "edit" ? (
         <div className="space-y-3">
+          {/* Shared venue suggestions — every location field offers this dropdown
+              so a venue is picked once and reused, while still allowing a new
+              address to be typed. */}
+          <datalist id="known-venues">
+            {[...new Set([weekLocation, ...knownLocations].filter((v): v is string => !!v))]
+              .sort((a, b) => a.localeCompare(b))
+              .map((loc) => (
+                <option key={loc} value={loc} />
+              ))}
+          </datalist>
           {days.map((day) => (
             <div
               key={day.id}
@@ -170,11 +182,12 @@ export function SessionSchedule({
                 <Field label="Meeting point / location (shows on the venue map)" name={`location-${day.id}`}>
                   <Input
                     name="location"
+                    list="known-venues"
                     defaultValue={day.location ?? ""}
                     placeholder={
                       weekLocation
-                        ? `Defaults to ${weekLocation} — add an address or venue name for this day`
-                        : "e.g. Reykjavík City Hall, Tjarnargata 11"
+                        ? `Pick a saved venue or type a new address — defaults to ${weekLocation}`
+                        : "Pick a saved venue or type a new address"
                     }
                   />
                 </Field>

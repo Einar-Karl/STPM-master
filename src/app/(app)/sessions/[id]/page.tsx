@@ -42,26 +42,34 @@ export default async function SessionRosterPage({
     .single();
   if (!session) notFound();
 
-  const [{ data: participants }, { data: sessionDays }, { data: prepTasks }] = await Promise.all([
-    supabase
-      .from("course_bookings")
-      .select(
-        "id, participant_name, nationality, school, coordinator, payment_status, tour_booked, status, group_label, special_needs"
-      )
-      .eq("session_id", id)
-      .order("participant_name", { ascending: true }),
-    supabase
-      .from("course_session_days")
-      .select("id, day_date, title, notes, location")
-      .eq("session_id", id)
-      .order("day_date", { ascending: true }),
-    supabase
-      .from("prep_tasks")
-      .select("id, label, done")
-      .eq("session_id", id)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true }),
-  ]);
+  const [{ data: participants }, { data: sessionDays }, { data: prepTasks }, { data: venueRows }] =
+    await Promise.all([
+      supabase
+        .from("course_bookings")
+        .select(
+          "id, participant_name, nationality, school, coordinator, payment_status, tour_booked, status, group_label, special_needs"
+        )
+        .eq("session_id", id)
+        .order("participant_name", { ascending: true }),
+      supabase
+        .from("course_session_days")
+        .select("id, day_date, title, notes, location")
+        .eq("session_id", id)
+        .order("day_date", { ascending: true }),
+      supabase
+        .from("prep_tasks")
+        .select("id, label, done")
+        .eq("session_id", id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      // Every venue used across the app, so the location field can offer them
+      // as a searchable dropdown instead of re-typing.
+      supabase.from("course_session_days").select("location").not("location", "is", null),
+    ]);
+
+  const knownLocations = [
+    ...new Set((venueRows ?? []).map((r) => r.location?.trim()).filter((v): v is string => !!v)),
+  ];
 
   const course = (session.courses as unknown as { name: string } | null)?.name ?? "Course";
   const week = session.course_weeks as unknown as {
@@ -267,6 +275,7 @@ export default async function SessionRosterPage({
           }
           days={sessionDays}
           weekLocation={week?.location ?? null}
+          knownLocations={knownLocations}
         />
       ) : (
         <Card>
