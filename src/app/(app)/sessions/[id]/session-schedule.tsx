@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button, Field, Input, Textarea } from "@/components/ui";
+import { VenueMap } from "@/components/venue-map";
 import { updateSessionDayAction } from "./actions";
 
 export type SessionDay = {
@@ -9,6 +10,7 @@ export type SessionDay = {
   day_date: string;
   title: string | null;
   notes: string | null;
+  location: string | null;
 };
 
 function longDate(dateStr: string): string {
@@ -38,11 +40,13 @@ export function SessionSchedule({
   courseName,
   days,
   meta,
+  weekLocation = null,
 }: {
   sessionId: string;
   courseName: string;
   days: SessionDay[];
   meta: string;
+  weekLocation?: string | null;
 }) {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [copied, setCopied] = useState(false);
@@ -52,6 +56,7 @@ export function SessionSchedule({
     const lines = [`${courseName}`, meta, "", "DAY-BY-DAY PROGRAMME", "--------------------"];
     for (const d of days) {
       lines.push("", `${longDate(d.day_date)}${d.title ? ` — ${d.title}` : ""}`);
+      if (d.location) lines.push(`  Meet at: ${d.location}`);
       if (d.notes) for (const ln of d.notes.split("\n")) lines.push(`  ${ln}`);
     }
     return lines.join("\n");
@@ -76,6 +81,11 @@ export function SessionSchedule({
           )}</td>
           <td style="padding:12px 0;vertical-align:top;border-bottom:1px solid #e5e7eb">
             <p style="margin:0;font-weight:600;color:#111827">${escapeHtml(d.title ?? "")}</p>
+            ${
+              d.location
+                ? `<p style="margin:2px 0 0;color:#0369a1;font-size:13px">&#128205; Meet at: ${escapeHtml(d.location)}</p>`
+                : ""
+            }
             ${
               d.notes
                 ? `<p style="margin:4px 0 0;white-space:pre-wrap;color:#374151">${escapeHtml(d.notes)}</p>`
@@ -132,6 +142,11 @@ export function SessionSchedule({
         )}
       </div>
 
+      <VenueMap
+        days={days.map((d) => ({ id: d.id, day_date: d.day_date, location: d.location }))}
+        fallbackLocation={weekLocation}
+      />
+
       {mode === "edit" ? (
         <div className="space-y-3">
           {days.map((day) => (
@@ -150,6 +165,17 @@ export function SessionSchedule({
                     name="title"
                     defaultValue={day.title ?? ""}
                     placeholder="e.g. Intro & AI foundations, Classroom tools, Field trip"
+                  />
+                </Field>
+                <Field label="Meeting point / location (shows on the venue map)" name={`location-${day.id}`}>
+                  <Input
+                    name="location"
+                    defaultValue={day.location ?? ""}
+                    placeholder={
+                      weekLocation
+                        ? `Defaults to ${weekLocation} — add an address or venue name for this day`
+                        : "e.g. Reykjavík City Hall, Tjarnargata 11"
+                    }
                   />
                 </Field>
                 <Field label="Plan for the day" name={`notes-${day.id}`}>
@@ -188,6 +214,11 @@ export function SessionSchedule({
                 <p className="mt-0.5 text-base font-semibold text-neutral-900 dark:text-neutral-100">
                   {d.title || <span className="font-normal italic text-neutral-400">Untitled day</span>}
                 </p>
+                {d.location && (
+                  <p className="mt-0.5 text-sm font-medium text-sky-700 dark:text-sky-400">
+                    📍 Meet at: {d.location}
+                  </p>
+                )}
                 {d.notes ? (
                   <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600 dark:text-neutral-300">
                     {d.notes}

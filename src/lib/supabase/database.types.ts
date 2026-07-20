@@ -193,6 +193,7 @@ export type Database = {
           created_at: string
           day_date: string
           id: string
+          location: string | null
           notes: string | null
           session_id: string
           title: string | null
@@ -201,6 +202,7 @@ export type Database = {
           created_at?: string
           day_date: string
           id?: string
+          location?: string | null
           notes?: string | null
           session_id: string
           title?: string | null
@@ -209,6 +211,7 @@ export type Database = {
           created_at?: string
           day_date?: string
           id?: string
+          location?: string | null
           notes?: string | null
           session_id?: string
           title?: string | null
@@ -937,6 +940,54 @@ export type Database = {
           specializations?: string | null
         }
         Relationships: []
+      }
+      prep_tasks: {
+        Row: {
+          created_at: string
+          done: boolean
+          id: string
+          label: string
+          role: string
+          session_id: string | null
+          sort_order: number
+          week_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          label: string
+          role: string
+          session_id?: string | null
+          sort_order?: number
+          week_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          label?: string
+          role?: string
+          session_id?: string | null
+          sort_order?: number
+          week_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prep_tasks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "course_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prep_tasks_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "course_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       week_retros: {
         Row: {

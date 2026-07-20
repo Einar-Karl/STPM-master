@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDateRange } from "@/lib/planner";
 
 export type TimelineBar = {
@@ -47,12 +47,13 @@ export function TimelineExplorer({
   bars: TimelineBar[];
   initialChannel?: LocalChannel;
 }) {
-  const [zoom, setZoom] = useState<Zoom>("year");
+  const [zoom, setZoom] = useState<Zoom>("quarter");
   const [channel, setChannel] = useState<LocalChannel>(initialChannel);
   const [anchorMonth, setAnchorMonth] = useState<number>(() => {
     const now = new Date();
     return now.getUTCFullYear() === year ? now.getUTCMonth() : 0;
   });
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const daysInYear = isLeapYear(year) ? 366 : 365;
 
@@ -104,6 +105,19 @@ export function TimelineExplorer({
   );
   const todayOffset =
     now.getUTCFullYear() === year && nowDay >= windowStart && nowDay < windowEnd ? nowDay : null;
+
+  // Give the year view a wide canvas so adjacent weeks stop overlapping; the
+  // container scrolls horizontally and auto-centres on today.
+  const canvasMinWidth = zoom === "year" ? 2200 : zoom === "quarter" ? 1100 : 880;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || todayOffset === null) return;
+    const labelWidth = 96; // sticky w-24 location column
+    const trackWidth = el.scrollWidth - labelWidth;
+    const x = labelWidth + ((todayOffset - windowStart) / windowSpan) * trackWidth;
+    el.scrollLeft = Math.max(0, x - el.clientWidth / 2);
+  }, [zoom, anchorMonth, channel, todayOffset, windowStart, windowSpan]);
 
   const canPrev = zoom !== "year" && (zoom === "quarter" ? anchorMonth >= 3 : anchorMonth >= 1);
   const canNext =
@@ -200,10 +214,10 @@ export function TimelineExplorer({
           No course weeks in this view.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-          <div className="min-w-[880px]">
+        <div ref={scrollRef} className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+          <div style={{ minWidth: canvasMinWidth }}>
             <div className="relative flex">
-              <div className="w-24 shrink-0 border-r border-b border-neutral-200 dark:border-neutral-800" />
+              <div className="sticky left-0 z-30 w-24 shrink-0 border-r border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950" />
               <div className="relative h-8 flex-1 border-b border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900">
                 {headerTicks.map((tick, i) => (
                   <div
@@ -222,7 +236,7 @@ export function TimelineExplorer({
             <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {lanes.map((location) => (
                 <div key={location} className="flex">
-                  <div className="flex w-24 shrink-0 items-center border-r border-neutral-200 px-3 py-3 text-sm font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
+                  <div className="sticky left-0 z-20 flex w-24 shrink-0 items-center border-r border-neutral-200 bg-white px-3 py-3 text-sm font-medium text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300">
                     {location}
                   </div>
                   <div className="relative h-14 flex-1">

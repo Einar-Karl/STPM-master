@@ -15,7 +15,9 @@ import {
   Textarea,
   Th,
 } from "@/components/ui";
-import { channelLabel, formatDateRange } from "@/lib/planner";
+import { channelLabel, formatDateRange, hasSpecialNeeds } from "@/lib/planner";
+import { PrepChecklist } from "@/components/prep-checklist";
+import { VenueMap } from "@/components/venue-map";
 import { WeekItinerary } from "@/components/week-itinerary";
 import {
   addCourseToWeekAction,
@@ -31,6 +33,7 @@ const VIEWS = [
   { key: "schedule", label: "Schedule grid" },
   { key: "days", label: "Day by day" },
   { key: "rooms", label: "Rooms & hotel" },
+  { key: "checklist", label: "Checklist" },
   { key: "retro", label: "Retro" },
 ] as const;
 
@@ -59,6 +62,7 @@ export default async function WeekDetailPage({
     { data: sessionDays },
     { data: courses },
     { data: retros },
+    { data: prepTasks },
   ] = await Promise.all([
     supabase
       .from("course_sessions")
@@ -67,7 +71,7 @@ export default async function WeekDetailPage({
       )
       .eq("week_id", id),
     supabase.from("teachers").select("id, name, code, active").order("sort_order", { ascending: true }),
-    supabase.from("course_bookings").select("session_id, status, payment_status"),
+    supabase.from("course_bookings").select("session_id, status, payment_status, special_needs"),
     supabase.from("course_week_days").select("*").eq("week_id", id).order("day_date", { ascending: true }),
     supabase
       .from("hotel_bookings")
@@ -83,18 +87,28 @@ export default async function WeekDetailPage({
       .order("day_date", { ascending: true }),
     supabase.from("courses").select("id, name").order("name", { ascending: true }),
     supabase.from("week_retros").select("*").eq("week_id", id).order("created_at", { ascending: false }),
+    supabase
+      .from("prep_tasks")
+      .select("id, label, done")
+      .eq("week_id", id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
   ]);
 
   const activeTeachers = (teachers ?? []).filter((t) => t.active);
 
-  // participant + paid counts per session (exclude cancelled)
+  // per-session participant, paid and special-needs counts (exclude cancelled)
   const counts = new Map<string, number>();
   const paidCounts = new Map<string, number>();
+  const needsCounts = new Map<string, number>();
   for (const b of bookings ?? []) {
     if (b.status === "cancelled") continue;
     counts.set(b.session_id, (counts.get(b.session_id) ?? 0) + 1);
     if ((b.payment_status ?? "").toUpperCase() === "PAID") {
       paidCounts.set(b.session_id, (paidCounts.get(b.session_id) ?? 0) + 1);
+    }
+    if (hasSpecialNeeds(b.special_needs)) {
+      needsCounts.set(b.session_id, (needsCounts.get(b.session_id) ?? 0) + 1);
     }
   }
 
@@ -106,6 +120,7 @@ export default async function WeekDetailPage({
       supportName: (s.support as unknown as { name: string } | null)?.name ?? null,
       count: counts.get(s.id) ?? 0,
       paid: paidCounts.get(s.id) ?? 0,
+      needsCount: needsCounts.get(s.id) ?? 0,
     }))
     .sort((a, b) => a.courseName.localeCompare(b.courseName));
 
@@ -173,6 +188,9 @@ export default async function WeekDetailPage({
             Updates the week and every course session in it.
           </p>
         </form>
+        <div className="mt-3">
+          <VenueMap days={[]} fallbackLocation={week.location} />
+        </div>
       </Card>
 
       <Card>
@@ -234,7 +252,11 @@ export default async function WeekDetailPage({
                 : "border border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
             }`}
           >
-            {v.key === "retro" && retros?.length ? `Retro (${retros.length})` : v.label}
+            {v.key === "retro" && retros?.length
+              ? `Retro (${retros.length})`
+              : v.key === "checklist" && prepTasks?.length
+                ? `Checklist (${prepTasks.filter((t) => t.done).length}/${prepTasks.length})`
+                : v.label}
           </Link>
         ))}
       </div>
@@ -248,6 +270,7 @@ export default async function WeekDetailPage({
                   <Th>Course</Th>
                   <Th>Participants</Th>
                   <Th>Paid</Th>
+                  <Th>Alerts</Th>
                   <Th>Lead teacher</Th>
                   <Th>Support teacher</Th>
                   <Th>
@@ -279,6 +302,19 @@ export default async function WeekDetailPage({
                       >
                         {s.paid}/{s.count} paid
                       </span>
+                    </Td>
+                    <Td>
+                      {s.needsCount > 0 ? (
+                        <Link
+                          href={`/sessions/${s.id}`}
+                          title={`${s.needsCount} participant${s.needsCount > 1 ? "s" : ""} with allergies, accessibility or other special needs — open the roster for details`}
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900"
+                        >
+                          ⚠ {s.needsCount} special needs
+                        </Link>
+                      ) : (
+                        <span className="text-neutral-300 dark:text-neutral-600">—</span>
+                      )}
                     </Td>
                     <Td>
                       <form action={assignTeachersAction} id={`f-${s.id}`} className="contents">
@@ -519,6 +555,14 @@ export default async function WeekDetailPage({
             </Card>
           )}
         </div>
+      ) : activeView === "checklist" ? (
+        <PrepChecklist
+          role="planner"
+          weekId={week.id}
+          title="Planner checklist — everything ready for this week"
+          intro="The week-level action plan: venue, teachers, hotels, transfers, catering and communication. Each teacher also has their own prep checklist on their course page."
+          tasks={prepTasks ?? []}
+        />
       ) : (
         <div className="space-y-4">
           <Card>
